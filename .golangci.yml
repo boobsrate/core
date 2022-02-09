@@ -1,0 +1,82 @@
+run:
+  concurrency: 4
+  timeout: 5m
+
+linters:
+  disable-all: true
+  enable:
+    - deadcode
+    - depguard
+    - errcheck
+    - gci
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - revive
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - prealloc
+    - exportloopref
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+
+linters-settings:
+  unparam:
+    check-exported: true
+
+issues:
+  exclude:
+    - Error return value of `.*log.Sync` is not checked
+    - \`criterias` is a misspelling of `criteria`
+    - var `type_` should be `type`
+  exclude-rules:
+    - path: internal/postgres
+      text: \`tableName\` is unused
+    - path: _test\.go
+      linters:
+        - goconst
+        - maligned
+    - text: "^G204" # Subprocess launched with function call as argument or cmd arguments
+      linters:
+        - gosec
+    # Files are used in providers implemented using filesystem. We don't care much about file permissions for them,
+    # as they are designed to be used locally anyway.
+    - linters:
+        - gosec
+      text: "^G306" # Expect WriteFile permissions to be 0600 or less
+    # We use math/rand in some places, where cryptographically secure random numbers are not required.
+    - linters:
+        - gosec
+      text: "^G404"# Use of weak random number generator (math/rand instead of crypto/rand)
+    # TODO: this issue actually needs to be fixed.
+    - linters:
+        - gocritic
+      text: "^exitAfterDefer" # e.g. 'log.Fatal clutters defer ...'
+    # This linter doesn't work well with blank imports. See: https://github.com/daixiang0/gci/issues/6
+    - linters:
+        - interfacer
+      path: internal/grpcapi
+      text: "can be `google.golang.org/grpc.ServiceRegistrar`"
+    - linters:
+        - unparam
+      text: .* (\(error\)|`err`) is always (nil|`nil`)
+    - linters:
+        - revive
+      text: redundant if ...; err != nil check, just return error instead.
+    # When we deprecate fields and methods, sometimes we still need to refer to them,
+    # and failing linter is definitely not what we want in these cases.
+    - linters:
+        - staticcheck
+      text: "^SA1019" # Deprecation warnings.

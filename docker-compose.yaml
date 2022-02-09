@@ -1,0 +1,17 @@
+version: '3.7'
+
+services:
+  titsfrontend:
+    image: kuzyashin/titsfront:latest
+    ports:
+      - "8000:8000"
+  titsbackend:
+    image: kuzyashin/titsbackend:latest
+    ports:
+      - "9000:9000"
+    environment:
+      - DATABASE_HOST=
+      - DATABASE_PORT=
+      - DATABASE_USER=
+      - DATABASE_PASSWORD=
+      - DATABASE_NAME=
