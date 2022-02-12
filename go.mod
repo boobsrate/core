@@ -5,14 +5,12 @@ go 1.16
 require (
 	github.com/boobsrate/apis v0.0.1
 	github.com/caarlos0/env/v6 v6.9.1
-	github.com/chai2010/webp v1.1.0 // indirect
 	github.com/gojuno/minimock/v3 v3.0.10
 	github.com/golang-migrate/migrate/v4 v4.15.1
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/kolesa-team/go-webp v1.0.1
 	github.com/lib/pq v1.10.0
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/minio/minio-go/v7 v7.0.21

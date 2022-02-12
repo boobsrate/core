@@ -58,5 +58,5 @@ func (t *Storage) DeleteImage(ctx context.Context, imageName string) error {
 }
 
 func (t *Storage) AssembleFileURL(tits *domain.Tits) {
-	tits.URL = fmt.Sprintf("%s/%s/%s.jpg", t.client.EndpointURL(), t.bucketName, tits.ID)
+	tits.URL = fmt.Sprintf("%s/%s/%s.webp", t.client.EndpointURL(), t.bucketName, tits.ID)
 }

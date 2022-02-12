@@ -48,8 +48,17 @@ func (w *WebsocketsHub) Dead() chan struct{} {
 }
 
 func (w *WebsocketsHub) broadcast(msg interface{}) {
-	for _, client := range w.clients {
+	w.log.Info("processing broadcast", zap.Any("msg", msg))
+	w.clientsLock.RLock()
+	currentClients := make(map[string]*domain.WSClient, len(w.clients))
+	for id, client := range w.clients {
+		currentClients[id] = client
+	}
+	w.clientsLock.RUnlock()
+	for _, client := range currentClients {
+		client.Mu.Lock()
 		err := client.Connection.WriteJSON(msg)
+		client.Mu.Unlock()
 		if err != nil {
 			w.log.Error("can not send msg to user", zap.Error(err))
 		}
@@ -59,6 +68,7 @@ func (w *WebsocketsHub) broadcast(msg interface{}) {
 func (w *WebsocketsHub) addClient(client *domain.WSClient) {
 	w.clientsLock.RLock()
 	w.clients[client.ID] = client
+	clientsLen := len(w.clients)
 	w.clientsLock.RUnlock()
 	client.Connection.SetReadLimit(maxMessageSize)
 	err := client.Connection.SetReadDeadline(time.Now().Add(pongWait))
@@ -75,12 +85,25 @@ func (w *WebsocketsHub) addClient(client *domain.WSClient) {
 		},
 	)
 	go w.reader(client)
+	go func() {
+		w.msgChan <- domain.WSMessage{
+			Type:    domain.WSMessageTypeOnlineUsers,
+			Message: domain.WSOnlineUsersMessage{Online: clientsLen},
+		}
+	}()
 }
 
 func (w *WebsocketsHub) removeClient(client *domain.WSClient) {
 	w.clientsLock.RLock()
 	delete(w.clients, client.ID)
+	clientsLen := len(w.clients)
 	w.clientsLock.RUnlock()
+	go func() {
+		w.msgChan <- domain.WSMessage{
+			Type:    domain.WSMessageTypeOnlineUsers,
+			Message: domain.WSOnlineUsersMessage{Online: clientsLen},
+		}
+	}()
 }
 
 func (w *WebsocketsHub) reader(client *domain.WSClient) {

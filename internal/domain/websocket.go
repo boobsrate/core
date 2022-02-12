@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/json"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -13,7 +14,8 @@ func (w WSMessageType) String() string {
 }
 
 const (
-	WSMessageTypeNewRating = "new_rating"
+	WSMessageTypeNewRating   = "new_rating"
+	WSMessageTypeOnlineUsers = "online_users"
 )
 
 type WSMessage struct {
@@ -23,8 +25,9 @@ type WSMessage struct {
 
 func (w WSMessage) MarshalJSON() ([]byte, error) {
 	data := map[string]interface{}{
-		"type":    w.Type.String(),
-		"message": w.Message,
+		"type":       w.Type.String(),
+		"message_id": NewID(),
+		"message":    w.Message,
 	}
 	return json.Marshal(data)
 }
@@ -34,7 +37,12 @@ type WSNewRatingMessage struct {
 	NewRating int64  `json:"new_rating"`
 }
 
+type WSOnlineUsersMessage struct {
+	Online int `json:"online"`
+}
+
 type WSClient struct {
 	ID         string
 	Connection *websocket.Conn
+	Mu         sync.Mutex
 }
