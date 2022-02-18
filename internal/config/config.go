@@ -39,7 +39,7 @@ type DatabaseConfig struct {
 }
 
 type TracingConfig struct {
-	ProviderEndpoint string `env:"TRACING_ENDPOINT" required:"true" envDefault:"http://tempo-monitoring.monitoring:14268/api/traces"`
+	ProviderEndpoint string `env:"TRACING_ENDPOINT" required:"true" envDefault:"http://monitoring-tempo.monitoring:14268/api/traces"`
 	TracerName       string `env:"TRACING_TRACER_NAME" required:"true" envDefault:"tits"`
 }
 

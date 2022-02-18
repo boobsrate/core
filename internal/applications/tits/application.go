@@ -31,7 +31,7 @@ func Run() error {
 		return fmt.Errorf("failed to create logger: %v", err)
 	}
 	defer logger.Sync() // nolint:errcheck
-	appLogger := logger.Named("tits")
+	appLogger := logging.NewLogger(logger, "tits")
 
 	cfg, err := config.LoadConfiguration()
 	if err != nil {
@@ -53,7 +53,6 @@ func Run() error {
 
 	loggingMiddleware := handlers.NewLoggingMiddleware(logger)
 	loggingMiddleware.Apply(rootRouter)
-
 	wsHub := websockethub.NewWebsocketsHub(logger)
 	wsHandler := wshandler.NewWebsocketHandler(logger, wsHub.ClientsChannel())
 	wsHandler.Register(rootRouter)
@@ -92,7 +91,7 @@ func Run() error {
 
 	rootServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.HTTPPort),
-		Handler: server.ApplyCors(rootRouter),
+		Handler: tracing.ApplyPrometheusMiddleware(server.ApplyCors(rootRouter)),
 	}
 
 	httpRootServer := server.NewGracefulServer(rootServer, logger.Named("http_server"))

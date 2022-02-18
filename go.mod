@@ -7,7 +7,7 @@ require (
 	github.com/caarlos0/env/v6 v6.9.1
 	github.com/gojuno/minimock/v3 v3.0.10
 	github.com/golang-migrate/migrate/v4 v4.15.1
-	github.com/gorilla/mux v1.7.4
+	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
@@ -17,6 +17,7 @@ require (
 	github.com/oklog/ulid/v2 v2.0.2
 	github.com/prometheus/client_golang v1.12.1
 	github.com/rs/cors v1.8.2
+	github.com/slok/go-http-metrics v0.10.0
 	github.com/uptrace/bun v1.0.22
 	github.com/uptrace/bun/dialect/pgdialect v1.0.22
 	github.com/uptrace/bun/driver/pgdriver v1.0.22
