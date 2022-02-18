@@ -26,7 +26,7 @@ func main() {
 		log.Fatal("load configuration: ", zap.Error(err))
 	}
 
-	sqlDB := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(cfg.DSN())))
+	sqlDB := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(cfg.DatabaseDSN)))
 	driver, err := postgres.WithInstance(sqlDB, &postgres.Config{})
 	if err != nil {
 		log.Fatal("connect to database: ", zap.Error(err))

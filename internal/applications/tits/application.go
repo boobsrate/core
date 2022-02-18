@@ -69,7 +69,7 @@ func Run() error {
 
 	minioStorage := minio2.NewMinioStorage(minioClient, cfg.Minio.Bucket)
 
-	database := postgres.NewPostgresDatabase(cfg.Database.DSN())
+	database := postgres.NewPostgresDatabase(cfg.Database.DatabaseDSN)
 	titsRepo := postgres.NewTitsRepository(database)
 
 	titsService := tits.NewService(titsRepo, minioStorage, logger, wsHub.MessagesChannel())

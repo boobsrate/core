@@ -26,7 +26,7 @@ func main() {
 		log.Fatal("load configuration: ", zap.Error(err))
 	}
 
-	pgDB := postgres.NewPostgresDatabase(cfg.Database.DSN())
+	pgDB := postgres.NewPostgresDatabase(cfg.Database.DatabaseDSN)
 	titsRepo := postgres.NewTitsRepository(pgDB)
 
 	minioClient, err := minio.New(cfg.Minio.Endpoint, &minio.Options{

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/caarlos0/env/v6"
 )
 
@@ -10,26 +8,23 @@ import (
 type Configuration struct {
 	Database DatabaseConfig
 	Minio    MinioConfig
+	Images   ImagesConfig
+}
+
+type ImagesConfig struct {
+	OptimizerEndpoint string `env:"IMAGES_OPTIMIZER_ENDPOINT" envDefault:"http://image-optimizer.images:3000"`
 }
 
 type MinioConfig struct {
-	Endpoint  string `env:"MINIO_ENDPOINT" envDefault:"storage.ops.boobsrate.com"`
-	AccessKey string `env:"MINIO_ACCESS_KEY" envDefault:"golangbackend"`
-	SecretKey string `env:"MINIO_SECRET_KEY" envDefault:"142701foobar"`
-	Bucket    string `env:"MINIO_BUCKET" required:"true"`
-	UseSSL    bool   `env:"MINIO_USE_SSL" envDefault:"true"`
+	Endpoint  string `env:"MINIO_ENDPOINT" envDefault:"minio.images:9000"`
+	AccessKey string `env:"MINIO_ACCESS_KEY" envDefault:""`
+	SecretKey string `env:"MINIO_SECRET_KEY" envDefault:""`
+	Bucket    string `env:"MINIO_BUCKET" envDefault:"tits"`
+	UseSSL    bool   `env:"MINIO_USE_SSL" envDefault:"false"`
 }
 
 type DatabaseConfig struct {
-	Host     string `env:"DATABASE_HOST" required:"false" envDefault:"132.226.58.135"`
-	Port     string `env:"DATABASE_PORT" required:"false" envDefault:"5432"`
-	User     string `env:"DATABASE_USER" required:"false" envDefault:"golangbackend"`
-	Password string `env:"DATABASE_PASSWORD" required:"false" envDefault:"Assimilate142701"`
-	Name     string `env:"DATABASE_NAME" required:"false" envDefault:"tits"`
-}
-
-func (d *DatabaseConfig) DSN() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", d.User, d.Password, d.Host, d.Port, d.Name)
+	DatabaseDSN string `env:"DATABASE_DSN"`
 }
 
 // LoadConfiguration returns a new application configuration parsed from environment variables.
