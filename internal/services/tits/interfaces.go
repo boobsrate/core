@@ -14,5 +14,6 @@ type Database interface {
 
 type Storage interface {
 	CreateImageFromFile(ctx context.Context, imageName string, filePath string) error
-	AssembleFileURL(tits *domain.Tits)
+	CreateImageFromBytes(ctx context.Context, imageName string, imageData []byte) error
+	GetImageUrl(imageID string) string
 }

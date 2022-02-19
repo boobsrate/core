@@ -22,6 +22,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	otelmiddleware "go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
 )
 
@@ -66,12 +67,12 @@ func Run() error {
 		return fmt.Errorf("creating minio client: %v", err)
 	}
 
-	minioStorage := minio2.NewMinioStorage(minioClient, cfg.Minio.Bucket)
+	minioStorage := minio2.NewMinioStorage(minioClient, cfg.Minio.Bucket, cfg.Images.PublicEndpoint)
 
 	database := postgres.NewPostgresDatabase(cfg.Database.DatabaseDSN)
 	titsRepo := postgres.NewTitsRepository(database)
 
-	titsService := tits.NewService(titsRepo, minioStorage, logger, wsHub.MessagesChannel())
+	titsService := tits.NewService(titsRepo, minioStorage, logger, wsHub.MessagesChannel(), cfg.Images.OptimizerEndpoint)
 	titsGrpcServer := titspbv1.NewTitsGRPCServer(titsService)
 
 	titsHttpService := tits2.NewTitsHandler(titsService)
@@ -88,6 +89,8 @@ func Run() error {
 		appLogger.Error("create tracing provider", zap.Error(err))
 		return fmt.Errorf("creating tracing provider: %v", err)
 	}
+
+	rootRouter.Use(otelmiddleware.Middleware("tits"))
 
 	rootServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.HTTPPort),

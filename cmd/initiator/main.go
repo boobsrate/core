@@ -31,13 +31,13 @@ func main() {
 
 	minioClient, err := minio.New(cfg.Minio.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.Minio.AccessKey, cfg.Minio.SecretKey, ""),
-		Secure: true,
+		Secure: false,
 	})
 	if err != nil {
 		logger.Fatal("creating minio client: ", zap.Error(err))
 	}
-	titsStorage := storage.NewMinioStorage(minioClient, cfg.Minio.Bucket)
-	titsService := tits.NewService(titsRepo, titsStorage, logger, nil)
+	titsStorage := storage.NewMinioStorage(minioClient, cfg.Minio.Bucket, "" /* publicURL */)
+	titsService := tits.NewService(titsRepo, titsStorage, logger, nil, cfg.Images.OptimizerEndpoint)
 
 	initiatorApp := initiator.NewService(logger, titsService)
 	initiatorApp.Run()

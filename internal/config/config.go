@@ -10,6 +10,7 @@ type Configuration struct {
 	Tracing  TracingConfig
 	Metrics  MetricsConfig
 	Minio    MinioConfig
+	Images   ImagesConfig
 }
 
 type ServerConfiguration struct {
@@ -24,10 +25,10 @@ type ImagesConfig struct {
 
 type MinioConfig struct {
 	Endpoint  string `env:"MINIO_ENDPOINT" envDefault:"minio.images:9000"`
-	AccessKey string `env:"MINIO_ACCESS_KEY" envDefault:"golangbackend"`
-	SecretKey string `env:"MINIO_SECRET_KEY" envDefault:"142701foobar"`
+	AccessKey string `env:"MINIO_ACCESS_KEY" envDefault:""`
+	SecretKey string `env:"MINIO_SECRET_KEY" envDefault:""`
 	Bucket    string `env:"MINIO_BUCKET" envDefault:"tits"`
-	UseSSL    bool   `env:"MINIO_USE_SSL" envDefault:"false"`
+	UseSSL    bool   `env:"MINIO_USE_SSL" envDefault:"true"`
 }
 
 type MetricsConfig struct {

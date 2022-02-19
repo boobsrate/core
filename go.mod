@@ -23,8 +23,9 @@ require (
 	github.com/uptrace/bun/driver/pgdriver v1.0.22
 	github.com/uptrace/bun/extra/bunotel v1.0.22
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.8
+	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.29.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.28.0
-	go.opentelemetry.io/otel v1.3.0
+	go.opentelemetry.io/otel v1.4.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.3.0
 	go.opentelemetry.io/otel/sdk v1.3.0
 	go.uber.org/zap v1.20.0

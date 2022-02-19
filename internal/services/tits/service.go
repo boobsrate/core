@@ -2,6 +2,9 @@ package tits
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -13,21 +16,39 @@ import (
 const defaultTitsCreateTimeout = time.Second * 10
 
 type Service struct {
-	db      Database
-	storage Storage
+	db           Database
+	storage      Storage
+	optimizerURL string
 
 	wsChannel chan domain.WSMessage
 
 	log *otelzap.Logger
 }
 
-func NewService(db Database, storage Storage, log *zap.Logger, wsChannel chan domain.WSMessage) *Service {
+func NewService(db Database, storage Storage, log *zap.Logger, wsChannel chan domain.WSMessage, optimizerURL string) *Service {
 	return &Service{
-		db:        db,
-		storage:   storage,
-		wsChannel: wsChannel,
-		log:       otelzap.New(log.Named("tits_service")),
+		db:           db,
+		storage:      storage,
+		wsChannel:    wsChannel,
+		optimizerURL: optimizerURL,
+		log:          otelzap.New(log.Named("tits_service")),
 	}
+}
+
+func (s *Service) getWebpImage(ctx context.Context, url string) ([]byte, error) {
+	httpClient := http.Client{}
+	requestURL := fmt.Sprintf("%s/optimize?size=350&format=webp&src=%s", s.optimizerURL, url)
+	req, err := http.NewRequest("GET", requestURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return ioutil.ReadAll(resp.Body)
 }
 
 func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath string) error {
@@ -39,6 +60,20 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 		s.log.Ctx(ctx).Error("create tits from file:", zap.Error(err))
 		return err
 	}
+
+	webpImage, err := s.getWebpImage(ctx, filePath)
+	if err != nil {
+		s.log.Ctx(ctx).Error("get webp image:", zap.Error(err))
+		return err
+	}
+
+	webpFilename := strings.Replace(filename, ".jpg", ".webp", 1)
+	err = s.storage.CreateImageFromBytes(ctx, webpFilename, webpImage)
+	if err != nil {
+		s.log.Ctx(ctx).Error("create webp image:", zap.Error(err))
+		return err
+	}
+
 	err = s.db.CreateTits(ctx, domain.Tits{
 		ID:        strings.ReplaceAll(filename, ".jpg", ""),
 		CreatedAt: time.Now().UTC(),
@@ -59,7 +94,9 @@ func (s *Service) GetTits(ctx context.Context) ([]domain.Tits, error) {
 	}
 
 	for idx := range tits {
-		s.storage.AssembleFileURL(&tits[idx])
+		imgPrefix := s.storage.GetImageUrl(tits[idx].ID)
+		tits[idx].URL = fmt.Sprintf("%s.wepb", imgPrefix)
+		tits[idx].FullURL = fmt.Sprintf("%s.jpg", imgPrefix)
 	}
 
 	return tits, nil

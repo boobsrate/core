@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/boobsrate/core/internal/domain"
 	"github.com/minio/minio-go/v7"
 )
 
@@ -17,12 +16,14 @@ const (
 type Storage struct {
 	client     *minio.Client
 	bucketName string
+	publicURL  string
 }
 
-func NewMinioStorage(client *minio.Client, bucketName string) *Storage {
+func NewMinioStorage(client *minio.Client, bucketName string, publicURL string) *Storage {
 	return &Storage{
 		client:     client,
 		bucketName: bucketName,
+		publicURL:  publicURL,
 	}
 }
 
@@ -57,6 +58,6 @@ func (t *Storage) DeleteImage(ctx context.Context, imageName string) error {
 	return nil
 }
 
-func (t *Storage) AssembleFileURL(tits *domain.Tits) {
-	tits.URL = fmt.Sprintf("%s/%s/%s.webp", t.client.EndpointURL(), t.bucketName, tits.ID)
+func (t *Storage) GetImageUrl(imageID string) string {
+	return fmt.Sprintf("%s/%s/%s", t.publicURL, t.bucketName, imageID)
 }
