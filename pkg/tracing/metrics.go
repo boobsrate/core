@@ -27,9 +27,12 @@ func NewGracefulMetricsServer() http.Handler {
 	return r
 }
 
-func ApplyPrometheusMiddleware(h http.Handler) http.Handler {
+func ApplyPrometheusMiddleware(h http.Handler, prefix string) http.Handler {
 	mdlw := middleware.New(middleware.Config{
-		Recorder: metrics.NewRecorder(metrics.Config{}),
+		Recorder: metrics.NewRecorder(metrics.Config{
+			Prefix:       prefix,
+			ServiceLabel: prefix,
+		}),
 	})
 	return middlewarestd.Handler("", mdlw, h)
 }

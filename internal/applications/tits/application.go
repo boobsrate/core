@@ -91,7 +91,7 @@ func Run() error {
 
 	rootServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.HTTPPort),
-		Handler: tracing.ApplyPrometheusMiddleware(server.ApplyCors(rootRouter)),
+		Handler: tracing.ApplyPrometheusMiddleware(server.ApplyCors(rootRouter), "titsbackend"),
 	}
 
 	httpRootServer := server.NewGracefulServer(rootServer, logger.Named("http_server"))
