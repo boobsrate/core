@@ -3,6 +3,7 @@ package tracing
 import (
 	"fmt"
 
+	jaegerprop "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/propagation"
@@ -33,6 +34,7 @@ func NewTracingProvider(endpoint, serviceName string) (*tracesdk.TracerProvider,
 	// Set the global tracer provider.
 	otel.SetTracerProvider(tp)
 	// Set the global propagation context.
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+	//jaeger := jaeger.Jaeger{}
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}, jaegerprop.Jaeger{}))
 	return tp, nil
 }

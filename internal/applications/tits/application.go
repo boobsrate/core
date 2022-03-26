@@ -52,6 +52,14 @@ func Run() error {
 
 	rootRouter := mux.NewRouter()
 
+	tp, err := tracing.NewTracingProvider(cfg.Tracing.ProviderEndpoint, cfg.Tracing.TracerName)
+	if err != nil {
+		appLogger.Error("create tracing provider", zap.Error(err))
+		return fmt.Errorf("creating tracing provider: %v", err)
+	}
+
+	rootRouter.Use(otelmiddleware.Middleware("tits"))
+
 	loggingMiddleware := handlers.NewLoggingMiddleware(logger)
 	loggingMiddleware.Apply(rootRouter)
 	wsHub := websockethub.NewWebsocketsHub(logger)
@@ -83,14 +91,6 @@ func Run() error {
 	})
 
 	gracefulServer := grpc.NewGracefulServer(cfg.Server.GRPCPort, grpcServer, logger)
-
-	tp, err := tracing.NewTracingProvider(cfg.Tracing.ProviderEndpoint, cfg.Tracing.TracerName)
-	if err != nil {
-		appLogger.Error("create tracing provider", zap.Error(err))
-		return fmt.Errorf("creating tracing provider: %v", err)
-	}
-
-	rootRouter.Use(otelmiddleware.Middleware("tits"))
 
 	rootServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.HTTPPort),

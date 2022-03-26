@@ -15,6 +15,7 @@ func (b *baseHandler) ErrorJSON(w http.ResponseWriter, error string, code int) {
 		w.Write([]byte(`{"error":"` + error + `"}`)) // nolint: errcheck
 	}
 	w.WriteHeader(code)
+	return
 }
 
 func (b *baseHandler) RespJSON(w http.ResponseWriter, body interface{}, code int) {
@@ -29,4 +30,5 @@ func (b *baseHandler) RespJSON(w http.ResponseWriter, body interface{}, code int
 		}
 		w.Write(jsonBody) // nolint: errcheck
 	}
+	return
 }

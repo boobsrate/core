@@ -14,6 +14,8 @@ require (
 	github.com/lib/pq v1.10.0
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/minio/minio-go/v7 v7.0.21
+	github.com/nats-io/nats-server/v2 v2.6.2 // indirect
+	github.com/nats-io/nats.go v1.13.0 // indirect
 	github.com/oklog/ulid/v2 v2.0.2
 	github.com/prometheus/client_golang v1.12.1
 	github.com/rs/cors v1.8.2
@@ -25,6 +27,7 @@ require (
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.8
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.29.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.28.0
+	go.opentelemetry.io/contrib/propagators/jaeger v1.4.0
 	go.opentelemetry.io/otel v1.4.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.3.0
 	go.opentelemetry.io/otel/sdk v1.3.0
