@@ -8,6 +8,7 @@ import (
 
 type Database interface {
 	GetTits(ctx context.Context) ([]domain.Tits, error)
+	GetTop(ctx context.Context, limit int) ([]domain.Tits, error)
 	CreateTits(ctx context.Context, tits domain.Tits) error
 	IncreaseRating(ctx context.Context, titsID string) (int64, error)
 }

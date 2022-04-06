@@ -2,6 +2,7 @@ package tits
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -19,7 +20,36 @@ func NewTitsHandler(tits Service) *Handler {
 
 func (h *Handler) Register(router *mux.Router) {
 	router.HandleFunc("/tits", h.listTits).Methods("GET")
+	router.HandleFunc("/tits/top/{limit}", h.listTopTits).Methods("GET")
 	router.HandleFunc("/tits/{cardID}", h.voteTits).Methods("POST")
+}
+
+func (h *Handler) listTopTits(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	rawLimit := vars["limit"]
+	if rawLimit == "" {
+		h.ErrorJSON(w, "", http.StatusBadRequest)
+		return
+	}
+	limit, err := strconv.Atoi(rawLimit)
+	if err != nil {
+		h.ErrorJSON(w, "", http.StatusBadRequest)
+		return
+	}
+
+	if limit < 1 || limit > 100 {
+		limit = 100
+		return
+	}
+
+	tits, err := h.tits.GetTop(r.Context(), limit)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	h.RespJSON(w, tits, http.StatusOK)
 }
 
 func (h *Handler) listTits(w http.ResponseWriter, r *http.Request) {

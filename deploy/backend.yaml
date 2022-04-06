@@ -1,0 +1,172 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  namespace: boobsrate
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: boobsrate-migrate
+        image: kuzyashin/titsbackend:latest
+        envFrom:
+          - secretRef:
+              name: boobsratebackend-db
+        imagePullPolicy: Always
+        command: ["/bin/migrator"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: titsbackend
+  name: titsbackend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: titsbackend
+  template:
+    metadata:
+      labels:
+        app: titsbackend
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      containers:
+        - name: titsbackend
+          image: kuzyashin/titsbackend:latest
+          command: [ "/bin/tits" ]
+          imagePullPolicy: Always
+          env:
+            - name: TRACING_ENDPOINT
+              value: "http://tempo.monitoring:14268/api/traces"
+          envFrom:
+            - secretRef:
+                name: boobsratebackend-db
+            - secretRef:
+                name: boobsratebackend-minio
+          ports:
+            - name: http
+              containerPort: 8088
+              protocol: TCP
+            - name: grpc
+              containerPort: 8081
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /alive
+              port: metrics
+              scheme: HTTP
+            initialDelaySeconds: 10
+          livenessProbe:
+            initialDelaySeconds: 30
+            httpGet:
+              path: /alive
+              port: metrics
+              scheme: HTTP
+          resources:
+            requests:
+              cpu: 10m
+              memory: 20Mi
+            limits:
+              cpu: 250m
+              memory: 300Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: titsbackend
+  labels:
+    app: titsbackend
+spec:
+  ports:
+    - name: http
+      port: 8088
+      protocol: TCP
+      targetPort: http
+    - name: grpc
+      port: 8081
+      protocol: TCP
+      targetPort: grpc
+    - name: metrics
+      port: 9090
+      protocol: TCP
+      targetPort: metrics
+  selector:
+    app: titsbackend
+  sessionAffinity: None
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: titsbackend
+spec:
+  maxReplicas: 10
+  minReplicas: 3
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: titsbackend
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 90
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 90
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: titsbackend
+  namespace: boobsrate
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/server-snippets: |
+      location /ws {
+         proxy_set_header Upgrade $http_upgrade;
+         proxy_http_version 1.1;
+         proxy_set_header X-Forwarded-Host $http_host;
+         proxy_set_header X-Forwarded-Proto $scheme;
+         proxy_set_header X-Forwarded-For $remote_addr;
+         proxy_set_header Host $host;
+         proxy_set_header Connection "upgrade";
+         proxy_cache_bypass $http_upgrade;
+       }
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: tits.api.boobsrate.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: titsbackend
+                port:
+                  number: 8088
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: titsbackend
+                port:
+                  number: 8081
+
+  tls:
+    - hosts:
+        - tits.api.boobsrate.com
+      secretName: tls-titsbackend-general

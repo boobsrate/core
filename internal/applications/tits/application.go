@@ -7,12 +7,12 @@ import (
 
 	"github.com/boobsrate/core/internal/applications/websockethub"
 	"github.com/boobsrate/core/internal/config"
-	"github.com/boobsrate/core/internal/grpcapi/tits"
+	titsproto "github.com/boobsrate/core/internal/grpcapi/tits"
 	"github.com/boobsrate/core/internal/handlers"
-	tits2 "github.com/boobsrate/core/internal/handlers/tits"
+	titshandlers "github.com/boobsrate/core/internal/handlers/tits"
 	wshandler "github.com/boobsrate/core/internal/handlers/websocket"
 	"github.com/boobsrate/core/internal/repository/postgres"
-	"github.com/boobsrate/core/internal/services/tits"
+	titssvc "github.com/boobsrate/core/internal/services/tits"
 	minio2 "github.com/boobsrate/core/internal/storage/minio"
 	"github.com/boobsrate/core/pkg/grpc"
 	"github.com/boobsrate/core/pkg/logging"
@@ -80,10 +80,10 @@ func Run() error {
 	database := postgres.NewPostgresDatabase(cfg.Database.DatabaseDSN)
 	titsRepo := postgres.NewTitsRepository(database)
 
-	titsService := tits.NewService(titsRepo, minioStorage, logger, wsHub.MessagesChannel(), cfg.Images.OptimizerEndpoint)
-	titsGrpcServer := titspbv1.NewTitsGRPCServer(titsService)
+	titsService := titssvc.NewService(titsRepo, minioStorage, logger, wsHub.MessagesChannel(), cfg.Images.OptimizerEndpoint)
+	titsGrpcServer := titsproto.NewTitsGRPCServer(titsService)
 
-	titsHttpService := tits2.NewTitsHandler(titsService)
+	titsHttpService := titshandlers.NewTitsHandler(titsService)
 	titsHttpService.Register(rootRouter)
 
 	grpcServer := grpc.NewGrpcServer([]grpc.Server{

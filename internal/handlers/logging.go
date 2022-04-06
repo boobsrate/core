@@ -30,6 +30,7 @@ func (a *LoggingMiddleware) Handle(next http.Handler) http.Handler {
 			zap.String("user-agent", r.UserAgent()),
 			zap.String("referer", r.Referer()),
 			zap.String("forwarded", r.Header.Get("X-Forwarded-For")),
+			zap.String("trace-id", r.Header.Get("X-Uber-Trace-Id")),
 		)
 		next.ServeHTTP(w, r)
 	})

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/boobsrate/core/internal/domain"
 	"github.com/uptrace/bun"
@@ -16,6 +17,20 @@ func NewTitsRepository(db *bun.DB) *TitsRepository {
 	return &TitsRepository{
 		db: db,
 	}
+}
+
+func (t *TitsRepository) GetTop(ctx context.Context, limit int) ([]domain.Tits, error) {
+	titsModels := make([]titsModel, 0, limit)
+	err := t.db.NewSelect().
+		Model(&titsModels).
+		OrderExpr("rating DESC").
+		Limit(limit).
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tits := titsModelsToDomain(titsModels)
+	return tits, nil
 }
 
 func (t *TitsRepository) GetTits(ctx context.Context) ([]domain.Tits, error) {
@@ -53,6 +68,12 @@ func (t *TitsRepository) IncreaseRating(ctx context.Context, titsID string) (int
 			Where("id = ?", titsID).
 			Returning("rating").
 			Exec(ctx, &rating)
+		if err != nil {
+			return err
+		}
+		_, err = tx.NewInsert().
+			Model(&voteModel{TitsID: titsID, CreatedAt: time.Now().UTC()}).
+			Exec(ctx)
 		return err
 	})
 	if err != nil {

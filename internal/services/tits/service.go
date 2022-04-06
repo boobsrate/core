@@ -35,9 +35,11 @@ func NewService(db Database, storage Storage, log *zap.Logger, wsChannel chan do
 	}
 }
 
-func (s *Service) getWebpImage(ctx context.Context, url string) ([]byte, error) {
+func (s *Service) getWebpImage(ctx context.Context, filename string) ([]byte, error) {
 	httpClient := http.Client{}
-	requestURL := fmt.Sprintf("%s/optimize?size=350&format=webp&src=%s", s.optimizerURL, url)
+	filenameSplitted := strings.Split(filename, ".")
+	fileUrl := s.storage.GetImageUrl(filenameSplitted[0])
+	requestURL := fmt.Sprintf("%s/optimize?size=350&format=webp&src=http://minio.images:9000%s.jpg", s.optimizerURL, fileUrl)
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
 		return nil, err
@@ -61,7 +63,7 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 		return err
 	}
 
-	webpImage, err := s.getWebpImage(ctx, filePath)
+	webpImage, err := s.getWebpImage(ctx, filename)
 	if err != nil {
 		s.log.Ctx(ctx).Error("get webp image:", zap.Error(err))
 		return err
@@ -74,15 +76,15 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 		return err
 	}
 
-	err = s.db.CreateTits(ctx, domain.Tits{
-		ID:        strings.ReplaceAll(filename, ".jpg", ""),
-		CreatedAt: time.Now().UTC(),
-		Rating:    0,
-	})
-	if err != nil {
-		s.log.Ctx(ctx).Error("create tits in db: ", zap.Error(err))
-		return err
-	}
+	//err = s.db.CreateTits(ctx, domain.Tits{
+	//	ID:        strings.ReplaceAll(filename, ".jpg", ""),
+	//	CreatedAt: time.Now().UTC(),
+	//	Rating:    0,
+	//})
+	//if err != nil {
+	//	s.log.Ctx(ctx).Error("create tits in db: ", zap.Error(err))
+	//	return err
+	//}
 	return nil
 }
 
@@ -95,7 +97,23 @@ func (s *Service) GetTits(ctx context.Context) ([]domain.Tits, error) {
 
 	for idx := range tits {
 		imgPrefix := s.storage.GetImageUrl(tits[idx].ID)
-		tits[idx].URL = fmt.Sprintf("%s.wepb", imgPrefix)
+		tits[idx].URL = fmt.Sprintf("%s.webp", imgPrefix)
+		tits[idx].FullURL = fmt.Sprintf("%s.jpg", imgPrefix)
+	}
+
+	return tits, nil
+}
+
+func (s *Service) GetTop(ctx context.Context, limit int) ([]domain.Tits, error) {
+	tits, err := s.db.GetTop(ctx, limit)
+	if err != nil {
+		s.log.Ctx(ctx).Error("get tits from db", zap.Error(err))
+		return nil, err
+	}
+
+	for idx := range tits {
+		imgPrefix := s.storage.GetImageUrl(tits[idx].ID)
+		tits[idx].URL = fmt.Sprintf("%s.webp", imgPrefix)
 		tits[idx].FullURL = fmt.Sprintf("%s.jpg", imgPrefix)
 	}
 

@@ -14,8 +14,6 @@ require (
 	github.com/lib/pq v1.10.0
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/minio/minio-go/v7 v7.0.21
-	github.com/nats-io/nats-server/v2 v2.6.2 // indirect
-	github.com/nats-io/nats.go v1.13.0 // indirect
 	github.com/oklog/ulid/v2 v2.0.2
 	github.com/prometheus/client_golang v1.12.1
 	github.com/rs/cors v1.8.2
