@@ -9,7 +9,7 @@ spec:
       restartPolicy: Never
       containers:
       - name: boobsrate-migrate
-        image: kuzyashin/titsbackend:latest
+        image: registry.gitlab.com/boobsrate/core:latest
         envFrom:
           - secretRef:
               name: boobsratebackend-db
@@ -36,7 +36,7 @@ spec:
     spec:
       containers:
         - name: titsbackend
-          image: kuzyashin/titsbackend:latest
+          image: registry.gitlab.com/boobsrate/core:latest
           command: [ "/bin/tits" ]
           imagePullPolicy: Always
           env:
