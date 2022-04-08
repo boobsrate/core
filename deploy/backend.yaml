@@ -107,7 +107,7 @@ metadata:
   name: titsbackend
 spec:
   maxReplicas: 10
-  minReplicas: 3
+  minReplicas: 1
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
