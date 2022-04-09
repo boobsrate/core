@@ -23,7 +23,7 @@ func (t *TitsRepository) GetTop(ctx context.Context, limit int, abyss bool) ([]d
 	titsModels := make([]titsModel, 0, limit)
 	err := t.db.NewSelect().
 		Model(&titsModels).
-		Where("COALESCE(abyss, FALSE) = ?", abyss).
+		Where("abyss = ?", abyss).
 		OrderExpr("rating DESC").
 		Limit(limit).
 		Scan(ctx)
