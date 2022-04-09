@@ -104,8 +104,8 @@ func (s *Service) GetTits(ctx context.Context) ([]domain.Tits, error) {
 	return tits, nil
 }
 
-func (s *Service) GetTop(ctx context.Context, limit int) ([]domain.Tits, error) {
-	tits, err := s.db.GetTop(ctx, limit)
+func (s *Service) GetTop(ctx context.Context, limit int, abyss bool) ([]domain.Tits, error) {
+	tits, err := s.db.GetTop(ctx, limit, abyss)
 	if err != nil {
 		s.log.Ctx(ctx).Error("get tits from db", zap.Error(err))
 		return nil, err
@@ -130,6 +130,45 @@ func (s *Service) IncreaseRating(ctx context.Context, titsID string) error {
 	go s.sendNewRatingMessage(titsID, newRating)
 
 	return nil
+}
+
+func (s *Service) Report(ctx context.Context, titsID string) error {
+	err := s.db.Report(ctx, titsID)
+	if err != nil {
+		s.log.Ctx(ctx).Error("report tits in db", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) GetReports(ctx context.Context, titsID string) (int, error) {
+	reports, err := s.db.GetReportsCount(ctx, titsID)
+	if err != nil {
+		s.log.Ctx(ctx).Error("get reports count from db", zap.Error(err))
+		return 0, err
+	}
+
+	return reports, nil
+}
+
+func (s *Service) MoveToAbyss(ctx context.Context, titsID string) error {
+	err := s.db.MoveToAbyss(ctx, titsID)
+	if err != nil {
+		s.log.Ctx(ctx).Error("move to abyss in db", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func (s *Service) GetTitsWithReportsThreshold(ctx context.Context, reportsThreshold int) ([]domain.Tits, error) {
+	tits, err := s.db.GetTitsWithReportsThreshold(ctx, reportsThreshold)
+	if err != nil {
+		s.log.Ctx(ctx).Error("get tits from db", zap.Error(err))
+		return nil, err
+	}
+
+	return tits, nil
 }
 
 func (s *Service) sendNewRatingMessage(titsID string, newRating int64) {

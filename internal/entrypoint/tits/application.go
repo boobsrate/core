@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/boobsrate/core/internal/applications/abyss"
 	"github.com/boobsrate/core/internal/applications/websockethub"
 	"github.com/boobsrate/core/internal/config"
 	titsproto "github.com/boobsrate/core/internal/grpcapi/tits"
@@ -99,6 +100,8 @@ func Run() error {
 
 	httpRootServer := server.NewGracefulServer(rootServer, logger.Named("http_server"))
 
+	abyssKeeper := abyss.NewKeeper(logger, titsService)
+
 	obs := observer.NewObserver()
 
 	obs.AddOpener(observer.OpenerFunc(func() error {
@@ -134,12 +137,17 @@ func Run() error {
 	})
 
 	obs.AddUpper(func(ctx context.Context) {
+		abyssKeeper.Run(ctx)
+	})
+
+	obs.AddUpper(func(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 		case <-gracefulServer.Dead():
 		case <-httpRootServer.Dead():
 		case <-httpMetricsServer.Dead():
 		case <-wsHub.Dead():
+		case <-abyssKeeper.Dead():
 		}
 	})
 
