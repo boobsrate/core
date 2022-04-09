@@ -22,7 +22,7 @@ func (h *Handler) Register(router *mux.Router) {
 	router.HandleFunc("/tits", h.listTits).Methods("GET")
 	router.HandleFunc("/tits/top/{limit}", h.listTopTits).Methods("GET")
 	router.HandleFunc("/tits/{cardID}", h.voteTits).Methods("POST")
-	router.HandleFunc("/tits/report/{cardID}", h.voteTits).Methods("POST")
+	router.HandleFunc("/tits/report/{cardID}", h.reportTits).Methods("POST")
 	router.HandleFunc("/tits/abyss/{limit}", h.listAbyssTits).Methods("GET")
 
 }
