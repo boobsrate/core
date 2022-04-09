@@ -48,6 +48,6 @@ deploy:
     entrypoint: [""]
   script:
     - kubectl config get-contexts
-    - kubectl config use-context boobsrate/core:hetzner
+    - kubectl config use-context boobsrate/k8sagent:hetzner
     - kubectl apply -f deploy/backend.yaml --namespace boobsrate
 
