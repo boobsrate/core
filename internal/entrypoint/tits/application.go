@@ -9,7 +9,6 @@ import (
 	"github.com/boobsrate/core/internal/applications/websockethub"
 	"github.com/boobsrate/core/internal/config"
 	titsproto "github.com/boobsrate/core/internal/grpcapi/tits"
-	"github.com/boobsrate/core/internal/handlers"
 	titshandlers "github.com/boobsrate/core/internal/handlers/tits"
 	wshandler "github.com/boobsrate/core/internal/handlers/websocket"
 	"github.com/boobsrate/core/internal/repository/postgres"
@@ -61,8 +60,8 @@ func Run() error {
 
 	rootRouter.Use(otelmiddleware.Middleware("tits"))
 
-	loggingMiddleware := handlers.NewLoggingMiddleware(logger)
-	loggingMiddleware.Apply(rootRouter)
+	//loggingMiddleware := handlers.NewLoggingMiddleware(logger)
+	//loggingMiddleware.Apply(rootRouter)
 	wsHub := websockethub.NewWebsocketsHub(logger)
 	wsHandler := wshandler.NewWebsocketHandler(logger, wsHub.ClientsChannel())
 	wsHandler.Register(rootRouter)

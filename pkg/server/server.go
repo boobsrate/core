@@ -53,6 +53,7 @@ func ApplyCors(router *mux.Router) http.Handler {
 	c := cors.New(cors.Options{
 		AllowCredentials: true,
 		Debug:            false,
+		AllowedOrigins:   []string{"boobsrate.com"},
 	})
 
 	handler := c.Handler(router)
