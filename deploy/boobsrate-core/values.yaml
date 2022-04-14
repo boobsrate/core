@@ -4,19 +4,11 @@
 
 replicaCount: 1
 
-migrator:
-  image:
-    repository: registry.gitlab.com/boobsrate/core
-    command: /bin/migrator
-    pullPolicy: IfNotPresent
-    tag: ""
-    envFrom:
-      - secretRef:
-          name: boobsratebackend-db
 
 image:
   repository: registry.gitlab.com/boobsrate/core
   command: /bin/tits
+  migrate_command: /bin/migrator
   pullPolicy: IfNotPresent
   tag: ""
   env:

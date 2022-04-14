@@ -7,14 +7,14 @@ spec:
     spec:
       restartPolicy: Never
       containers:
-        - name: {{ include "boobsrate-core.fullname" . }}-migrator
-          image: {{ .Values.migrator.image.repository }}:{{ .Values.migrator.image.tag }}
-          {{- if .Values.image.envFrom }}
-          envFrom:
-          {{- range .Values.migrator.image.envFrom }}
-            - secretRef:
-                name: {{ .secretRef.name | quote }}
-                {{- end }}
-                {{- end }}
-          imagePullPolicy: Always
-          command: [ {{ .Values.migrator.image.command }} ]
+      - name: {{ .Chart.Name }}-migrator
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
+        {{- if .Values.image.envFrom }}
+        envFrom:
+        {{- range .Values.image.envFrom }}
+          - secretRef:
+              name: {{ .secretRef.name | quote }}
+        {{- end }}
+        {{- end }}
+        imagePullPolicy: Always
+        command: [ {{ .Values.image.migrate_command }} ]
