@@ -1,0 +1,41 @@
+image:
+  env:
+    - name: TRACER_NAME
+      value: "tits-dev"
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/server-snippets: |
+      location /ws {
+         proxy_set_header Upgrade $http_upgrade;
+         proxy_http_version 1.1;
+         proxy_set_header X-Forwarded-Host $http_host;
+         proxy_set_header X-Forwarded-Proto $scheme;
+         proxy_set_header X-Forwarded-For $remote_addr;
+         proxy_set_header Host $host;
+         proxy_set_header Connection "upgrade";
+         proxy_cache_bypass $http_upgrade;
+       }
+  hosts:
+    - host: dev.tits.api.boobsrate.com
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              port:
+                number: 8088
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              port:
+                number: 8081
+  tls:
+    - secretName: tls-titsbackend-dev
+      hosts:
+        - dev.tits.api.boobsrate.com

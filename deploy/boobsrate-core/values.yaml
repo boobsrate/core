@@ -4,6 +4,16 @@
 
 replicaCount: 1
 
+migrator:
+  image:
+    repository: registry.gitlab.com/boobsrate/core
+    command: /bin/migrator
+    pullPolicy: IfNotPresent
+    tag: ""
+    envFrom:
+      - secretRef:
+          name: boobsratebackend-db
+
 image:
   repository: registry.gitlab.com/boobsrate/core
   command: /bin/tits
@@ -40,7 +50,7 @@ podSecurityContext: { }
 securityContext: { }
   # capabilities:
   #   drop:
-  #   - ALL
+#   - ALL
 # readOnlyRootFilesystem: true
 # runAsNonRoot: true
 # runAsUser: 1000
@@ -79,7 +89,7 @@ ingress:
          proxy_cache_bypass $http_upgrade;
        }
   hosts:
-    - host: dev.tits.api.boobsrate.com
+    - host: tits.api.boobsrate.com
       paths:
         - path: /
           pathType: Prefix
@@ -96,7 +106,7 @@ ingress:
   tls:
     - secretName: tls-titsbackend-general
       hosts:
-        - dev.tits.api.boobsrate.com
+        - tits.api.boobsrate.com
 
 resources:
   requests:

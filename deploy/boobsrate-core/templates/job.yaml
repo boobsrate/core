@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "boobsrate-core.fullname" . }}-migrator
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: {{ include "boobsrate-core.fullname" . }}-migrator
+          image: {{ .Values.migrator.image.repository }}:{{ .Values.migrator.image.tag }}
+          {{- if .Values.image.envFrom }}
+          envFrom:
+          {{- range .Values.migrator.image.envFrom }}
+            - secretRef:
+                name: {{ .secretRef.name | quote }}
+                {{- end }}
+                {{- end }}
+          imagePullPolicy: Always
+          command: [ {{ .Values.migrator.image.command }} ]
