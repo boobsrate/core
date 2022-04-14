@@ -1,15 +1,28 @@
-apiVersion: skaffold/v2beta28
+apiVersion: skaffold/v1
 kind: Config
-metadata:
-  name: boobsrate-core
 build:
   artifacts:
-  - image: registry.gitlab.com/boobsrate/core:latest
-    docker:
-      dockerfile: Dockerfile
+    - image: registry.gitlab.com/boobsrate/core
+      context: .
+  tagPolicy:
+    gitCommit: {}
+  local:
+    useBuildkit: true
 deploy:
-  kubectl:
-    defaultNamespace: boobsrate
-    manifests:
-    - deploy/backend.yaml
-#    - deploy/servicemonitor.yaml
+  helm:
+    releases:
+      - name: boobsrate-core
+        namespace: boobsrate
+        chartPath: deploy/boobsrate-core
+        values:
+          image: registry.gitlab.com/boobsrate/core
+        setValues:
+          image.pullPolicy: Always
+        wait: true
+        imageStrategy:
+          helm: {}
+    flags:
+      install:
+        - --atomic
+      upgrade:
+        - --atomic

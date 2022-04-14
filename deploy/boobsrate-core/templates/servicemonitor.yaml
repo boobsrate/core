@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "boobsrate-core.fullname" . }}
+  namespace: monitoring
+  labels:
+    app: {{ include "boobsrate-core.fullname" . }}
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "boobsrate-core.fullname" . }}
+  namespaceSelector:
+    matchNames:
+      - {{ include "boobsrate-core.fullname" . }}
+  endpoints:
+    - port: metrics
+      scheme: http
