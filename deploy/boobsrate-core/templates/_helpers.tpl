@@ -48,6 +48,7 @@ Selector labels
 {{- define "boobsrate-core.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "boobsrate-core.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/appVersion: {{ .Chart.AppVersion | quote }}
 {{- end }}
 
 {{/*
