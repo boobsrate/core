@@ -40,6 +40,9 @@ helm.sh/chart: {{ include "boobsrate-core.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/appVersion: {{ .Chart.AppVersion | quote }}
+{{- end }}
 {{- end }}
 
 {{/*
@@ -48,7 +51,9 @@ Selector labels
 {{- define "boobsrate-core.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "boobsrate-core.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Chart.AppVersion }}
 app.kubernetes.io/appVersion: {{ .Chart.AppVersion | quote }}
+{{- end }}
 {{- end }}
 
 {{/*
