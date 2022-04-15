@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "boobsrate-core.fullname" . }}-migrator
+  name: {{ include "boobsrate-core.fullname" . }}-migrator-{{ randAlphaNum 6 | lower }}
 spec:
   template:
     spec:
