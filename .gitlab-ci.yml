@@ -43,11 +43,11 @@ deploy:
     - kubectl config use-context boobsrate/k8sagent:hetzner
     - |
       if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
-        tag="latest"
+        tag="$CI_COMMIT_REF_SLUG"
         ns="boobsrate"
         release="boobsrate-core"
         values="./deploy/boobsrate-core/values-prod.yaml"
-        echo "Running on default branch '$CI_DEFAULT_BRANCH': tag = 'latest'. Namespace = $ns. Release = $release"
+        echo "Running on branch '$CI_COMMIT_BRANCH': tag = $tag. Namespace = $ns. Release = $release"
       else
         tag="$CI_COMMIT_REF_SLUG"
         ns="boobsrate-dev"
