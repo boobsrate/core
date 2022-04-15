@@ -1,6 +1,3 @@
-variables:
-  CONTAINER_TAG: ${CI_COMMIT_SHORT_SHA}
-
 stages:
   - build
   - deploy
@@ -18,10 +15,10 @@ docker-build:
   script:
     - |
       if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
-        tag=":$CI_COMMIT_REF_SLUG"
+        tag=":$CI_COMMIT_SHORT_SHA"
         echo "Running on branch '$CI_COMMIT_BRANCH': tag = $tag"
       else
-        tag=":$CI_COMMIT_REF_SLUG"
+        tag=":$CI_COMMIT_SHORT_SHA"
         echo "Running on branch '$CI_COMMIT_BRANCH': tag = $tag"
       fi
     - docker build --pull -t "$CI_REGISTRY_IMAGE${tag}" .
@@ -43,13 +40,13 @@ deploy:
     - kubectl config use-context boobsrate/k8sagent:hetzner
     - |
       if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
-        tag="$CI_COMMIT_REF_SLUG"
+        tag="$CI_COMMIT_SHORT_SHA"
         ns="boobsrate"
         release="boobsrate-core"
         values="./deploy/boobsrate-core/values-prod.yaml"
         echo "Running on branch '$CI_COMMIT_BRANCH': tag = $tag. Namespace = $ns. Release = $release"
       else
-        tag="$CI_COMMIT_REF_SLUG"
+        tag="$CI_COMMIT_SHORT_SHA"
         ns="boobsrate-dev"
         release="boobsrate-core-dev"
         values="./deploy/boobsrate-core/values-dev.yaml"
