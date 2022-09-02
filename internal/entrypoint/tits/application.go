@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/boobsrate/core/internal/applications/abyss"
 	"github.com/boobsrate/core/internal/applications/websockethub"
@@ -16,6 +17,7 @@ import (
 	minio2 "github.com/boobsrate/core/internal/storage/minio"
 	"github.com/boobsrate/core/pkg/grpc"
 	"github.com/boobsrate/core/pkg/logging"
+	"github.com/boobsrate/core/pkg/migrations"
 	"github.com/boobsrate/core/pkg/observer"
 	"github.com/boobsrate/core/pkg/server"
 	"github.com/boobsrate/core/pkg/tracing"
@@ -38,6 +40,18 @@ func Run() error {
 	if err != nil {
 		appLogger.Error("loading configuration", zap.Error(err))
 		return fmt.Errorf("loading configuration: %v", err)
+	}
+
+	migrationManager, err := migrations.NewManager(cfg.Database.DatabaseDSN)
+	if err != nil {
+		appLogger.Error("create migrations manager", zap.Error(err))
+	}
+
+	migrateCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	err = migrationManager.Wait(migrateCtx)
+	if err != nil {
+		appLogger.Error("wait migrations", zap.Error(err))
 	}
 
 	logging.SetInternalGRPCLogger(logger.Named("grpc_logger"))
