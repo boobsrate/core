@@ -4,9 +4,9 @@ WORKDIR tits
 COPY . .
 RUN go mod tidy && go get -d -v
 
-RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linuxgo build -o /bin/migrator ./cmd/migrate
+RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -trimpath -o /bin/migrator ./cmd/migrate
 #RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -trimpath -o /bin/initiator ./cmd/initiator
-RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o /bin/tits ./cmd/tits
+RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -trimpath -o /bin/tits ./cmd/tits
 
 
 FROM scratch
