@@ -5,9 +5,9 @@ WORKDIR tits
 COPY . .
 RUN go get -d -v
 
-RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -trimpath -o /bin/migrator ./cmd/migrate
+RUN CGO_ENABLED=0 go build -trimpath -o /bin/migrator ./cmd/migrate
 #RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -trimpath -o /bin/initiator ./cmd/initiator
-RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -trimpath -o /bin/tits ./cmd/tits
+RUN CGO_ENABLED=0 go build -trimpath -o /bin/tits ./cmd/tits
 
 
 FROM scratch
