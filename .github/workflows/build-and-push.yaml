@@ -45,5 +45,6 @@ jobs:
         with:
           context: .
           push: true
+          driver-opts: network=host
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
