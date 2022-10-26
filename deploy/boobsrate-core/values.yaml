@@ -6,11 +6,10 @@ replicaCount: 1
 
 
 image:
-  repository: ghcr.io/boobsrate/core
+  name: ghcr.io/boobsrate/core:latest
   command: /bin/tits
   migrate_command: /bin/migrator
   pullPolicy: Always
-  tag: ""
   env:
     - name: TRACING_ENDPOINT
       value: "http://grafana-agent-traces.monitoring:14268/api/traces"

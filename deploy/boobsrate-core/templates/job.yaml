@@ -8,7 +8,7 @@ spec:
       restartPolicy: Never
       containers:
       - name: {{ .Chart.Name }}-migrator
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
+        image: "{{ .Values.image.name }}"
         {{- if .Values.image.envFrom }}
         envFrom:
         {{- range .Values.image.envFrom }}
