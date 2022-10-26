@@ -9,14 +9,23 @@ spec:
       imagePullSecrets:
         - name: dockerconfigjson-github-com
       containers:
-      - name: {{ .Chart.Name }}-migrator
-        image: "{{ .Values.image.name }}"
-        {{- if .Values.image.envFrom }}
-        envFrom:
-        {{- range .Values.image.envFrom }}
-          - secretRef:
-              name: {{ .secretRef.name | quote }}
-        {{- end }}
-        {{- end }}
-        imagePullPolicy: Always
-        command: [ {{ .Values.image.migrate_command }} ]
+        - name: {{ .Chart.Name }}-migrator
+          image: "{{ .Values.image.name }}"
+        {{- if .Values.image.env }}
+          env:
+            {{- range .Values.image.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          {{- end }}
+          {{- if .Values.image.envFromSecret }}
+          {{- range .Values.image.envFromSecret }}
+            - name: {{.name | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .valueFrom.secretKeyRef.name }}
+                  key: {{ .valueFrom.secretKeyRef.key }}
+            {{- end }}
+          {{- end }}
+          imagePullPolicy: Always
+          command: [ {{ .Values.image.migrate_command }} ]

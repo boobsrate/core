@@ -6,7 +6,7 @@ import (
 
 // Configuration represents application configuration for serve action.
 type Configuration struct {
-	DatabaseDSN   string `env:"connection_dsn"`
+	DatabaseDSN   string `env:"DATABASE_DSN"`
 	MigrationsDir string `env:"MIGRATIONS_DIR" envDefault:"migrations/"`
 }
 

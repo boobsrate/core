@@ -41,11 +41,13 @@ spec:
               value: {{ .value | quote }}
             {{- end }}
           {{- end }}
-          {{- if .Values.image.envFrom }}
-          envFrom:
-            {{- range .Values.image.envFrom }}
-            - secretRef:
-                name: {{ .secretRef.name | quote }}
+          {{- if .Values.image.envFromSecret }}
+          {{- range .Values.image.envFromSecret }}
+            - name: {{.name | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .valueFrom.secretKeyRef.name }}
+                  key: {{ .valueFrom.secretKeyRef.key }}
             {{- end }}
           {{- end }}
           ports:

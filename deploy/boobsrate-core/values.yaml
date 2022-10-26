@@ -15,11 +15,22 @@ image:
       value: "boobsrate"
     - name: TRACING_ENDPOINT
       value: "http://grafana-agent-traces.monitoring:14268/api/traces"
-  envFrom:
-    - secretRef:
-        name: boobsrate-db
-    - secretRef:
-        name: minio
+  envFromSecret:
+    - name: MINIO_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: minio
+          key: access_key
+    - name: MINIO_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: minio
+          key: secret_key
+    - name: DATABASE_DSN
+      valueFrom:
+        secretKeyRef:
+          name: boobsrate-db
+          key: connection_dsn
 
 
 imagePullSecrets: [ ]
