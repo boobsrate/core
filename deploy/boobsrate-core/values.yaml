@@ -6,19 +6,19 @@ replicaCount: 1
 
 
 image:
-  repository: registry.gitlab.com/boobsrate/core
+  repository: ghcr.io/boobsrate/core
   command: /bin/tits
   migrate_command: /bin/migrator
   pullPolicy: IfNotPresent
   tag: ""
   env:
     - name: TRACING_ENDPOINT
-      value: "http://tempo.monitoring:14268/api/traces"
+      value: "http://grafana-agent-traces.monitoring:14268/api/traces"
   envFrom:
     - secretRef:
-        name: boobsratebackend-db
+        name: boobsrate-db
     - secretRef:
-        name: boobsratebackend-minio
+        name: minio
 
 
 imagePullSecrets: [ ]
@@ -67,8 +67,8 @@ ingress:
   enabled: true
   className: "nginx"
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod-dns"
+    external-dns.alpha.kubernetes.io/hostname: "api.rate-tits.online"
     nginx.ingress.kubernetes.io/server-snippets: |
       location /ws {
          proxy_set_header Upgrade $http_upgrade;
@@ -81,7 +81,7 @@ ingress:
          proxy_cache_bypass $http_upgrade;
        }
   hosts:
-    - host: tits.api.boobsrate.com
+    - host: api.rate-tits.online
       paths:
         - path: /
           pathType: Prefix
@@ -98,7 +98,7 @@ ingress:
   tls:
     - secretName: tls-titsbackend-general
       hosts:
-        - tits.api.boobsrate.com
+        - api.rate-tits.online
 
 resources:
   requests:
@@ -113,6 +113,7 @@ autoscaling:
   minReplicas: 1
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
 
 nodeSelector: { }
 

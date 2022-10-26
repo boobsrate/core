@@ -1,9 +1,9 @@
 name: Create and publish a Docker image
 
-
 on:
   push:
-    branches-ignore: ['!master']
+  pull_request:
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -37,17 +37,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Generate Docker metadata
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v3
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pull_request
+            type=ref,event=workflow_dispatch
+            type=sha
+          flavor: |
+            latest=auto
 
-      - name: Build and push Docker image
+      - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          network: host
           context: .
-          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

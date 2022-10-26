@@ -74,8 +74,6 @@ func Run() error {
 
 	rootRouter.Use(otelmiddleware.Middleware("tits"))
 
-	//loggingMiddleware := handlers.NewLoggingMiddleware(logger)
-	//loggingMiddleware.Apply(rootRouter)
 	wsHub := websockethub.NewWebsocketsHub(logger)
 	wsHandler := wshandler.NewWebsocketHandler(logger, wsHub.ClientsChannel())
 	wsHandler.Register(rootRouter)
