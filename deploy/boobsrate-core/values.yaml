@@ -33,8 +33,10 @@ image:
           key: connection_dsn
 
 
-imagePullSecrets:
-  name: dockerconfigjson-github-com
+imagePullSecrets: [
+  { name: "dockerconfigjson-github-com" }
+]
+
 nameOverride: ""
 fullnameOverride: ""
 
@@ -54,7 +56,7 @@ podSecurityContext: { }
 
 securityContext: { }
   # capabilities:
-  #   drop:
+#   drop:
 #   - ALL
 # readOnlyRootFilesystem: true
 # runAsNonRoot: true
