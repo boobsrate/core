@@ -46,7 +46,6 @@ jobs:
           images: |
             ghcr.io/${{ github.repository }}
           tags: |
-            type=ref,event=branch
             type=sha
           flavor: |
             latest=${{ steps.extract_branch.outputs.branch == 'master' }}
