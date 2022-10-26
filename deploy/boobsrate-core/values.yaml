@@ -11,6 +11,8 @@ image:
   migrate_command: /bin/migrator
   pullPolicy: Always
   env:
+    - name: MINIO_BUCKET
+      value: "boobsrate"
     - name: TRACING_ENDPOINT
       value: "http://grafana-agent-traces.monitoring:14268/api/traces"
   envFrom:
