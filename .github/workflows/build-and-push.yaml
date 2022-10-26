@@ -60,8 +60,6 @@ jobs:
 
       - name: Install Helm
         uses: azure/setup-helm@v3
-        with:
-          version: v3.10.0
 
       - name: Form values file
         id: form_values_file
@@ -83,7 +81,7 @@ jobs:
         env:
           KUBECONFIG_FILE: '${{ secrets.KUBECONFIG }}'
         run: |
-          helm3 upgrade boobsrate ./deploy/boobsrate-core \
+          helm upgrade boobsrate ./deploy/boobsrate-core \
             --wait \
             --install \
             -f ./deploy/boobsrate-core/${{steps.form_values_file.outputs.value}} \
