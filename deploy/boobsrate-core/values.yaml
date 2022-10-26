@@ -33,7 +33,8 @@ image:
           key: connection_dsn
 
 
-imagePullSecrets: [ ]
+imagePullSecrets:
+  name: dockerconfigjson-github-com
 nameOverride: ""
 fullnameOverride: ""
 
