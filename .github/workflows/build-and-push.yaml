@@ -86,6 +86,6 @@ jobs:
             --install \
             -f ./deploy/boobsrate-core/${{steps.form_values_file.outputs.value}} \
             -n ${{steps.form_namespace.outputs.value}} \
-            --set image.name=${{ steps.meta.outputs.tags }}
+            --set image.name=${{ steps.meta.outputs.tags }} \
             --timeout 5m0s \
             --debug
