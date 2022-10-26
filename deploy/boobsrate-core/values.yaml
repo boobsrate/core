@@ -9,7 +9,7 @@ image:
   repository: ghcr.io/boobsrate/core
   command: /bin/tits
   migrate_command: /bin/migrator
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   tag: ""
   env:
     - name: TRACING_ENDPOINT

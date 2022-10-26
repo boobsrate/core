@@ -11,7 +11,6 @@ env:
 jobs:
   build-and-push-image:
     runs-on: ["self-hosted"]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -36,6 +35,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract branch name
+        run: echo "::set-output name=branch::${GITHUB_REF#refs/heads/}"
+        id: extract_branch
+
       - name: Generate Docker metadata
         id: meta
         uses: docker/metadata-action@v3
@@ -46,7 +49,7 @@ jobs:
             type=ref,event=branch
             type=sha
           flavor: |
-            latest=auto
+            latest=${{ steps.extract_branch.outputs.branch == 'master' }}
 
       - name: Build and push
         uses: docker/build-push-action@v3
@@ -54,3 +57,37 @@ jobs:
           context: .
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.10.0
+
+      - name: Form values file
+        id: form_values_file
+        uses: haya14busa/action-cond@v1
+        with:
+          cond: ${{ steps.extract_branch.outputs.branch == 'master' }}
+          if_true: values-prod.yaml
+          if_false: values-dev.yaml
+
+      - name: Form namespace
+        id: form_namespace
+        uses: haya14busa/action-cond@v1
+        with:
+          cond: ${{ steps.extract_branch.outputs.branch == 'master' }}
+          if_true: boobsrate
+          if_false: boobsrate-dev
+
+      - name: Install/upgrade helm chart to Kubernetes cluster
+        env:
+          KUBECONFIG_FILE: '${{ secrets.KUBECONFIG }}'
+        run: |
+          helm3 upgrade boobsrate ${GITHUB_WORKSPACE}/deploy/boobsrate-core \
+            --wait \
+            --install \
+            -f ${GITHUB_WORKSPACE}/deploy/boobsrate-core/${steps.form_values_file.outputs.value} \
+            -n ${steps.form_namespace.outputs.value} \
+            --set image.tag=${ steps.meta.outputs.tags }
+            --timeout 5m0s \
+            --debug
