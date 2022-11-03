@@ -1,8 +1,11 @@
 package auth
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -15,11 +18,14 @@ func NewAuthHandler() *Handler {
 	return &Handler{}
 }
 
-type tgUser struct {
-	ID        string `json:"id"`
-	Username  string `json:"username"`
+type tgPayload struct {
+	ID        int    `json:"id"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
+	Username  string `json:"username"`
+	PhotoUrl  string `json:"photo_url"`
+	AuthDate  int    `json:"auth_date"`
+	Hash      string `json:"hash"`
 }
 
 func (h *Handler) Register(router *mux.Router) {
@@ -32,5 +38,13 @@ func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.ErrorJSON(w, err.Error(), 500)
 	}
-	h.RespJSON(w, jsonBody, http.StatusOK)
+	var payload tgPayload
+	err = json.Unmarshal(jsonBody, &payload)
+	if err != nil {
+		h.ErrorJSON(w, err.Error(), 500)
+	}
+	expiration := time.Now().Add(14 * 24 * time.Hour)
+	cookie := http.Cookie{Name: "boobs_session", Value: strconv.Itoa(payload.ID), Expires: expiration}
+	http.SetCookie(w, &cookie)
+	h.RespJSON(w, "", http.StatusOK)
 }
