@@ -44,7 +44,14 @@ func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
 		h.ErrorJSON(w, err.Error(), 500)
 	}
 	expiration := time.Now().Add(14 * 24 * time.Hour)
-	cookie := http.Cookie{Name: "boobs_session", Value: strconv.Itoa(payload.ID), Expires: expiration}
+	cookie := http.Cookie{
+		Name:    "boobs_session",
+		Value:   strconv.Itoa(payload.ID),
+		Expires: expiration,
+		Domain: ".rate-tits.online",
+		Path: "/",
+		Secure: true,
+	}
 	http.SetCookie(w, &cookie)
 	h.RespJSON(w, "", http.StatusOK)
 }
