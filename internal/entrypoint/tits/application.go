@@ -10,6 +10,7 @@ import (
 	"github.com/boobsrate/core/internal/applications/websockethub"
 	"github.com/boobsrate/core/internal/config"
 	titsproto "github.com/boobsrate/core/internal/grpcapi/tits"
+	authhandlers "github.com/boobsrate/core/internal/handlers/auth"
 	titshandlers "github.com/boobsrate/core/internal/handlers/tits"
 	wshandler "github.com/boobsrate/core/internal/handlers/websocket"
 	"github.com/boobsrate/core/internal/repository/postgres"
@@ -97,6 +98,9 @@ func Run() error {
 
 	titsHttpService := titshandlers.NewTitsHandler(titsService)
 	titsHttpService.Register(rootRouter)
+
+	authhandler := authhandlers.NewAuthHandler()
+	authhandler.Register(rootRouter)
 
 	grpcServer := grpc.NewGrpcServer([]grpc.Server{
 		titsGrpcServer,
