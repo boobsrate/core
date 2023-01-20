@@ -9,14 +9,12 @@ import (
 	"github.com/boobsrate/core/internal/applications/abyss"
 	"github.com/boobsrate/core/internal/applications/websockethub"
 	"github.com/boobsrate/core/internal/config"
-	titsproto "github.com/boobsrate/core/internal/grpcapi/tits"
 	authhandlers "github.com/boobsrate/core/internal/handlers/auth"
 	titshandlers "github.com/boobsrate/core/internal/handlers/tits"
 	wshandler "github.com/boobsrate/core/internal/handlers/websocket"
 	"github.com/boobsrate/core/internal/repository/postgres"
 	titssvc "github.com/boobsrate/core/internal/services/tits"
 	minio2 "github.com/boobsrate/core/internal/storage/minio"
-	"github.com/boobsrate/core/pkg/grpc"
 	"github.com/boobsrate/core/pkg/logging"
 	"github.com/boobsrate/core/pkg/migrations"
 	"github.com/boobsrate/core/pkg/observer"
@@ -94,19 +92,12 @@ func Run() error {
 	titsRepo := postgres.NewTitsRepository(database)
 
 	titsService := titssvc.NewService(titsRepo, minioStorage, logger, wsHub.MessagesChannel(), cfg.Images.OptimizerEndpoint)
-	titsGrpcServer := titsproto.NewTitsGRPCServer(titsService)
 
 	titsHttpService := titshandlers.NewTitsHandler(titsService)
 	titsHttpService.Register(rootRouter)
 
 	authhandler := authhandlers.NewAuthHandler()
 	authhandler.Register(rootRouter)
-
-	grpcServer := grpc.NewGrpcServer([]grpc.Server{
-		titsGrpcServer,
-	})
-
-	gracefulServer := grpc.NewGracefulServer(cfg.Server.GRPCPort, grpcServer, logger)
 
 	rootServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.HTTPPort),
@@ -120,19 +111,11 @@ func Run() error {
 	obs := observer.NewObserver()
 
 	obs.AddOpener(observer.OpenerFunc(func() error {
-		return gracefulServer.Serve()
-	}))
-
-	obs.AddOpener(observer.OpenerFunc(func() error {
 		return httpMetricsServer.Serve()
 	}))
 
 	obs.AddOpener(observer.OpenerFunc(func() error {
 		return httpRootServer.Serve()
-	}))
-
-	obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
-		return gracefulServer.Shutdown(ctx)
 	}))
 
 	obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
@@ -158,7 +141,6 @@ func Run() error {
 	obs.AddUpper(func(ctx context.Context) {
 		select {
 		case <-ctx.Done():
-		case <-gracefulServer.Dead():
 		case <-httpRootServer.Dead():
 		case <-httpMetricsServer.Dead():
 		case <-wsHub.Dead():

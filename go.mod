@@ -3,7 +3,6 @@ module github.com/boobsrate/core
 go 1.18
 
 require (
-	github.com/boobsrate/apis v0.0.1
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/gojuno/minimock/v3 v3.0.10
 	github.com/golang-migrate/migrate/v4 v4.15.2
@@ -88,7 +87,6 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
-	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
