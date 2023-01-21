@@ -3,7 +3,9 @@ package initiator
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
+	"sync"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
@@ -35,21 +37,34 @@ func (s *Service) Run() {
 	ctx := context.Background()
 	totalFiles := len(files)
 
+	guard := make(chan struct{}, 10)
+	wg := &sync.WaitGroup{}
 	for idx, f := range files {
-		s.log.Info(
-			"Creating new tits",
+		guard <- struct{}{}
+		wg.Add(1)
+		go s.work(ctx, wg, guard, idx, totalFiles, f)
+	}
+	wg.Wait()
+}
+
+func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struct{}, idx, totalFiles int, f fs.FileInfo) {
+	s.log.Info(
+		"Creating new tits",
+		zap.String("name", f.Name()),
+		zap.Int("index", idx),
+		zap.Int("total", totalFiles),
+	)
+	err := s.titsService.CreateTitsFromFile(ctx, f.Name(), fmt.Sprintf("%s/%s", titsPath, f.Name()))
+	if err != nil {
+		s.log.Error("Failed to create tits",
 			zap.String("name", f.Name()),
 			zap.Int("index", idx),
 			zap.Int("total", totalFiles),
+			zap.Error(err),
 		)
-		err := s.titsService.CreateTitsFromFile(ctx, f.Name(), fmt.Sprintf("%s/%s", titsPath, f.Name()))
-		if err != nil {
-			s.log.Error("Failed to create tits",
-				zap.String("name", f.Name()),
-				zap.Int("index", idx),
-				zap.Int("total", totalFiles),
-				zap.Error(err),
-			)
-		}
 	}
+	defer func() {
+		wg.Done()
+		<-guard
+	}()
 }

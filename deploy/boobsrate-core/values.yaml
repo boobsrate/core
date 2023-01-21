@@ -9,12 +9,13 @@ image:
   name: ghcr.io/boobsrate/core:latest
   command: /bin/tits
   migrate_command: /bin/migrator
+  init_command: /bin/initiator
   pullPolicy: Always
   env:
     - name: MINIO_BUCKET
       value: "boobsrate"
     - name: TRACING_ENDPOINT
-      value: "http://grafana-agent-traces.monitoring:14268/api/traces"
+      value: "http://tempo.monitoring:14268/api/traces"
   envFromSecret:
     - name: MINIO_ACCESS_KEY
       valueFrom:

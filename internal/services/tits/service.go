@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const defaultTitsCreateTimeout = time.Second * 10
+const defaultTitsCreateTimeout = time.Second * 30
 
 type Service struct {
 	db           Database
@@ -39,7 +39,7 @@ func (s *Service) getWebpImage(ctx context.Context, filename string) ([]byte, er
 	httpClient := http.Client{}
 	filenameSplitted := strings.Split(filename, ".")
 	fileUrl := s.storage.GetImageUrl(filenameSplitted[0])
-	requestURL := fmt.Sprintf("%s/optimize?size=350&format=webp&src=http://minio.images:9000%s.jpg", s.optimizerURL, fileUrl)
+	requestURL := fmt.Sprintf("%s/optimize?size=350&format=webp&src=https://s3.rate-tits.online%s.jpg", s.optimizerURL, fileUrl)
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
 		return nil, err
@@ -76,15 +76,15 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 		return err
 	}
 
-	//err = s.db.CreateTits(ctx, domain.Tits{
-	//	ID:        strings.ReplaceAll(filename, ".jpg", ""),
-	//	CreatedAt: time.Now().UTC(),
-	//	Rating:    0,
-	//})
-	//if err != nil {
-	//	s.log.Ctx(ctx).Error("create tits in db: ", zap.Error(err))
-	//	return err
-	//}
+	err = s.db.CreateTits(ctx, domain.Tits{
+		ID:        strings.ReplaceAll(filename, ".jpg", ""),
+		CreatedAt: time.Now().UTC(),
+		Rating:    0,
+	})
+	if err != nil {
+		s.log.Ctx(ctx).Error("create tits in db: ", zap.Error(err))
+		//return err
+	}
 	return nil
 }
 

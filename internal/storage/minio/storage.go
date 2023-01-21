@@ -9,7 +9,6 @@ import (
 )
 
 const (
-	titsBucketName      = "tits"
 	titsContentTypeJpeg = "image/jpeg"
 )
 
@@ -29,7 +28,7 @@ func NewMinioStorage(client *minio.Client, bucketName string, publicURL string) 
 
 func (t *Storage) CreateImageFromFile(ctx context.Context, imageName string, filePath string) error {
 	_, err := t.client.FPutObject(
-		ctx, titsBucketName, imageName, filePath, minio.PutObjectOptions{ContentType: titsContentTypeJpeg},
+		ctx, t.bucketName, imageName, filePath, minio.PutObjectOptions{ContentType: titsContentTypeJpeg},
 	)
 	if err != nil {
 		return fmt.Errorf("upload image to minio: %v", err)

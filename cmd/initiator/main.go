@@ -31,7 +31,7 @@ func main() {
 
 	minioClient, err := minio.New(cfg.Minio.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.Minio.AccessKey, cfg.Minio.SecretKey, ""),
-		Secure: false,
+		Secure: cfg.Minio.UseSSL,
 	})
 	if err != nil {
 		logger.Fatal("creating minio client: ", zap.Error(err))
