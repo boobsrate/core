@@ -15,6 +15,6 @@ COPY --from=builder /bin/tits /bin/tits
 COPY --from=builder /bin/initiator /bin/initiator
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY migrations migrations
-COPY assets assets
+#COPY assets assets
 
 ENV MIGRATIONS_DIR /migrations
