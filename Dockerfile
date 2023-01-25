@@ -1,4 +1,4 @@
-FROM golang:1.18-alpine3.15 AS builder
+FROM golang:1.19-alpine3.15 AS builder
 RUN apk update && apk add --no-cache ca-certificates git gcc make libc-dev binutils-gold
 WORKDIR tits
 COPY . .
