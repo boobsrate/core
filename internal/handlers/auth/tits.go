@@ -45,13 +45,11 @@ func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	expiration := time.Now().Add(14 * 24 * time.Hour)
 	cookie := http.Cookie{
-		Name:     "boobs_session",
-		Value:    strconv.Itoa(payload.ID),
-		Expires:  expiration,
-		Domain:   "dev.rate-tits.online",
-		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
-		HttpOnly: true,
+		Name:    "boobs_session",
+		Value:   strconv.Itoa(payload.ID),
+		Expires: expiration,
+		Domain:  "dev.rate-tits.online",
+		Path:    "/",
 	}
 	http.SetCookie(w, &cookie)
 	w.WriteHeader(200)
