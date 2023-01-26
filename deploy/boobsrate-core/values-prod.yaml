@@ -1,3 +1,8 @@
+image:
+  env:
+    - name: ENV
+      value: "prod"
+
 ingress:
   enabled: true
   className: "nginx"

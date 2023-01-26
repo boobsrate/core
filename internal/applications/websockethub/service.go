@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/boobsrate/core/internal/domain"
+	"github.com/centrifugal/centrifuge-go"
 	"github.com/gorilla/websocket"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
@@ -23,6 +24,7 @@ type WebsocketsHub struct {
 	msgChan     chan domain.WSMessage
 	clientsChan chan *domain.WSClient
 	dead        chan struct{}
+	cli         *centrifuge.Client
 }
 
 func NewWebsocketsHub(log *zap.Logger) *WebsocketsHub {
@@ -32,6 +34,9 @@ func NewWebsocketsHub(log *zap.Logger) *WebsocketsHub {
 		msgChan:     make(chan domain.WSMessage),
 		clientsChan: make(chan *domain.WSClient),
 		dead:        make(chan struct{}),
+		cli: centrifuge.NewProtobufClient("http://centrifuge.centrifuge:10000", centrifuge.Config{
+			Token: "UH6zHlXGZcAK6mfYVuVuqe3A5QLq",
+		}),
 	}
 }
 
@@ -121,6 +126,11 @@ func (w *WebsocketsHub) reader(client *domain.WSClient) {
 }
 
 func (w *WebsocketsHub) processMsg(msg domain.WSMessage) {
+	b, _ := msg.MarshalJSON()
+	_, err := w.cli.Publish(context.Background(),"boobs_dev", b)
+	if err != nil {
+		w.log.Error("can not send msg to centrifuge", zap.Error(err))
+	}
 	w.broadcast(msg)
 }
 

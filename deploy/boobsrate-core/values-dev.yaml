@@ -4,6 +4,8 @@ image:
       value: "boobsrate-dev"
     - name: TRACER_NAME
       value: "tits-dev"
+    - name: ENV
+      value: "dev"
 
 ingress:
   enabled: true
