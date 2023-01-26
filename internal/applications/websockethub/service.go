@@ -34,7 +34,7 @@ func NewWebsocketsHub(log *zap.Logger) *WebsocketsHub {
 		msgChan:     make(chan domain.WSMessage),
 		clientsChan: make(chan *domain.WSClient),
 		dead:        make(chan struct{}),
-		cli: centrifuge.NewProtobufClient("http://centrifuge.centrifuge:10000", centrifuge.Config{
+		cli: centrifuge.NewProtobufClient("centrifuge.centrifuge:10000", centrifuge.Config{
 			Token: "UH6zHlXGZcAK6mfYVuVuqe3A5QLq",
 		}),
 	}
