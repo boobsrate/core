@@ -48,7 +48,7 @@ func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
 		Name:     "boobs_session",
 		Value:    strconv.Itoa(payload.ID),
 		Expires:  expiration,
-		Domain:   ".rate-tits.online",
+		Domain:   "dev.rate-tits.online",
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
