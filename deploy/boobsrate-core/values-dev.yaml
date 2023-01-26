@@ -26,13 +26,13 @@ ingress:
   hosts:
     - host: dev.rate-tits.online
       paths:
-        - path: /api
+        - path: /api/(.*)
           pathType: Prefix
           backend:
             service:
               port:
                 number: 8088
-        - path: /api
+        - path: /api/(.*)
           pathType: Prefix
           backend:
             service:
