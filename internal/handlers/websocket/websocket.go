@@ -45,5 +45,5 @@ func (h *WebsocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 func (h *WebsocketHandler) Register(router *mux.Router) {
 	router.HandleFunc("/ws", h.ServeWS).Methods("GET", "CONNECT")
-	router.HandleFunc("/api/get-token", handleGetToken).Methods("GET")
+	router.HandleFunc("/get-token", handleGetToken).Methods("GET")
 }
