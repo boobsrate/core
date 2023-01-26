@@ -48,10 +48,11 @@ func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
 		Name:     "boobs_session",
 		Value:    strconv.Itoa(payload.ID),
 		Expires:  expiration,
+		Domain:   ".rate-tits.online",
 		Path:     "/",
-		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
+		HttpOnly: true,
 	}
 	http.SetCookie(w, &cookie)
-	h.RespJSON(w, "", http.StatusOK)
+	w.WriteHeader(200)
 }
