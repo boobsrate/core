@@ -34,7 +34,7 @@ func NewWebsocketsHub(log *zap.Logger) *WebsocketsHub {
 		msgChan:     make(chan domain.WSMessage),
 		clientsChan: make(chan *domain.WSClient),
 		dead:        make(chan struct{}),
-		cli: centrifuge.NewProtobufClient("centrifuge.centrifuge:10000", centrifuge.Config{
+		cli: centrifuge.NewProtobufClient("ws://centrifuge.centrifuge:8000", centrifuge.Config{
 			Token: "UH6zHlXGZcAK6mfYVuVuqe3A5QLq",
 		}),
 	}
@@ -127,7 +127,7 @@ func (w *WebsocketsHub) reader(client *domain.WSClient) {
 
 func (w *WebsocketsHub) processMsg(msg domain.WSMessage) {
 	b, _ := msg.MarshalJSON()
-	_, err := w.cli.Publish(context.Background(),"boobs_dev", b)
+	_, err := w.cli.Publish(context.Background(), "boobs_dev", b)
 	if err != nil {
 		w.log.Error("can not send msg to centrifuge", zap.Error(err))
 	}
