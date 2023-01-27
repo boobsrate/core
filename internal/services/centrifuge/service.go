@@ -38,6 +38,13 @@ func NewService(wsChannel chan domain.WSMessage, cfg config.CentrifugeConfigurat
 }
 
 func (s *Service) Run(ctx context.Context) {
+	s.log.Info("starting centrifuge service")
+	resp, err := s.cli.Info(context.Background(), &centrifugeApi.InfoRequest{})
+	if err != nil {
+		s.log.Error("error getting info", zap.Error(err))
+	}
+	s.log.Info("centrifuge info", zap.Any("resp", resp))
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -56,9 +63,9 @@ func (s *Service) Run(ctx context.Context) {
 				continue
 			}
 
-			resp, err := s.cli.Publish(context.Background(), &centrifugeApi.PublishRequest{
-				Channel: s.chanName,
-				Data:    b,
+			resp, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
+				Channels: []string{s.chanName},
+				Data:     b,
 			})
 			if err != nil {
 				s.log.Error("error while publishing message to centrifuge", zap.Error(err))
