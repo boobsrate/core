@@ -17,7 +17,7 @@ image:
     - name: TRACING_ENDPOINT
       value: "http://tempo.monitoring:14268/api/traces"
     - name: CENTRIFUGE_GRPC_ENDPOINT
-      value: "centrifuge.centrifuge:10000"
+      value: "centrifugo.centrifugo:10000"
   envFromSecret:
     - name: MINIO_ACCESS_KEY
       valueFrom:

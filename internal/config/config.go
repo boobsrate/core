@@ -20,7 +20,7 @@ type BaseConfig struct {
 }
 
 type CentrifugeConfiguration struct {
-	GRPCAddress string `env:"CENTRIFUGE_GRPC_ADDRESS" envDefault:"centrifuge.centrifuge:10000"`
+	GRPCAddress string `env:"CENTRIFUGE_GRPC_ADDRESS" envDefault:"centrifugo.centrifugo:10000"`
 	ApiToken    string `env:"CENTRIFUGE_API_TOKEN"`
 	SigningKey  string `env:"CENTRIFUGE_SIGNING_KEY"`
 }
