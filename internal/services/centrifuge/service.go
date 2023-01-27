@@ -56,13 +56,15 @@ func (s *Service) Run(ctx context.Context) {
 				continue
 			}
 
-			_, err = s.cli.Publish(context.Background(), &centrifugeApi.PublishRequest{
+			resp, err := s.cli.Publish(context.Background(), &centrifugeApi.PublishRequest{
 				Channel: s.chanName,
 				Data:    b,
 			})
 			if err != nil {
 				s.log.Error("error while publishing message to centrifuge", zap.Error(err))
 			}
+
+			s.log.Info("published message to centrifuge", zap.Any("resp", resp))
 		}
 	}
 }
