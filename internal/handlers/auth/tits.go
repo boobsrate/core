@@ -7,15 +7,20 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
 )
 
 type Handler struct {
 	baseHandler
+
+	cfKey string
 }
 
-func NewAuthHandler() *Handler {
-	return &Handler{}
+func NewAuthHandler(centrifugeSignKey string) *Handler {
+	return &Handler{
+		cfKey: centrifugeSignKey,
+	}
 }
 
 type tgPayload struct {
@@ -30,6 +35,8 @@ type tgPayload struct {
 
 func (h *Handler) Register(router *mux.Router) {
 	router.HandleFunc("/auth/tg-login", h.tgLogin).Methods("POST")
+	router.HandleFunc("/auth/get-token", h.handleGetToken).Methods("GET")
+
 }
 
 func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
@@ -53,4 +60,20 @@ func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &cookie)
 	w.WriteHeader(200)
+}
+
+func (h *Handler) handleGetToken(w http.ResponseWriter, r *http.Request) {
+	// Send token back to frontend
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		Issuer:    "boobs-backend",
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+	})
+
+	// Sign the JWT using a secret key
+	secret := []byte(h.cfKey)
+	tokenStr, _ := token.SignedString(secret)
+
+	json.NewEncoder(w).Encode(map[string]string{"token": tokenStr})
 }

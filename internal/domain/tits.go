@@ -1,6 +1,8 @@
 package domain
 
-import "time"
+import (
+	"time"
+)
 
 type Tits struct {
 	ID        string    `json:"id"`
@@ -14,9 +16,11 @@ type Tits struct {
 type Vote struct {
 	TitsID    string    `json:"tits_id"`
 	CreatedAt time.Time `json:"created_at"`
+	UserID    *string   `json:"user_id"`
 }
 
 type Report struct {
 	TitsID    string    `json:"tits_id"`
 	CreatedAt time.Time `json:"created_at"`
+	UserID    *string   `json:"user_id"`
 }

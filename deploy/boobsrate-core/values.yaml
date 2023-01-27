@@ -16,6 +16,8 @@ image:
       value: "boobsrate"
     - name: TRACING_ENDPOINT
       value: "http://tempo.monitoring:14268/api/traces"
+    - name: CENTRIFUGE_GRPC_ENDPOINT
+      value: "centrifuge.centrifuge:10000"
   envFromSecret:
     - name: MINIO_ACCESS_KEY
       valueFrom:
@@ -32,6 +34,16 @@ image:
         secretKeyRef:
           name: boobsrate-db
           key: connection_dsn
+    - name: CENTRIFUGE_API_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: centrifuge
+          key: api_token
+    - name: CENTRIFUGE_SIGNING_KEY
+      valueFrom:
+        secretKeyRef:
+          name: centrifuge
+          key: signing_key
 
 
 imagePullSecrets: [
@@ -80,41 +92,11 @@ service:
       targetPort: metrics
 
 ingress:
-  enabled: true
+  enabled: false
   className: "nginx"
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod-dns"
-    external-dns.alpha.kubernetes.io/hostname: "api.rate-tits.online"
-    nginx.ingress.kubernetes.io/server-snippets: |
-      location /ws {
-         proxy_set_header Upgrade $http_upgrade;
-         proxy_http_version 1.1;
-         proxy_set_header X-Forwarded-Host $http_host;
-         proxy_set_header X-Forwarded-Proto $scheme;
-         proxy_set_header X-Forwarded-For $remote_addr;
-         proxy_set_header Host $host;
-         proxy_set_header Connection "upgrade";
-         proxy_cache_bypass $http_upgrade;
-       }
-  hosts:
-    - host: api.rate-tits.online
-      paths:
-        - path: /
-          pathType: Prefix
-          backend:
-            service:
-              port:
-                number: 8088
-        - path: /
-          pathType: Prefix
-          backend:
-            service:
-              port:
-                number: 8081
-  tls:
-    - secretName: tls-titsbackend-general
-      hosts:
-        - api.rate-tits.online
+  annotations: {}
+  hosts: {}
+  tls: {}
 
 resources:
   requests:

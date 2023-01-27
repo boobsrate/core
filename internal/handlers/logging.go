@@ -9,7 +9,7 @@ import (
 )
 
 type LoggingMiddleware struct {
-	logger *otelzap.Logger
+	logger *zap.Logger
 }
 
 func NewLoggingMiddleware(logger *zap.Logger) *LoggingMiddleware {

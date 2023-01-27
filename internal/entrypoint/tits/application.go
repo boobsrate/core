@@ -7,15 +7,14 @@ import (
 	"time"
 
 	"github.com/boobsrate/core/internal/applications/abyss"
-	"github.com/boobsrate/core/internal/applications/websockethub"
 	"github.com/boobsrate/core/internal/config"
+	"github.com/boobsrate/core/internal/domain"
 	authhandlers "github.com/boobsrate/core/internal/handlers/auth"
 	titshandlers "github.com/boobsrate/core/internal/handlers/tits"
-	wshandler "github.com/boobsrate/core/internal/handlers/websocket"
 	"github.com/boobsrate/core/internal/repository/postgres"
+	"github.com/boobsrate/core/internal/services/centrifuge"
 	titssvc "github.com/boobsrate/core/internal/services/tits"
 	minio2 "github.com/boobsrate/core/internal/storage/minio"
-	"github.com/boobsrate/core/pkg/logging"
 	"github.com/boobsrate/core/pkg/migrations"
 	"github.com/boobsrate/core/pkg/observer"
 	"github.com/boobsrate/core/pkg/server"
@@ -33,27 +32,24 @@ func Run() error {
 		return fmt.Errorf("failed to create logger: %v", err)
 	}
 	defer logger.Sync() // nolint:errcheck
-	appLogger := logging.NewLogger(logger, "tits")
 
 	cfg, err := config.LoadConfiguration()
 	if err != nil {
-		appLogger.Error("loading configuration", zap.Error(err))
+		logger.Error("loading configuration", zap.Error(err))
 		return fmt.Errorf("loading configuration: %v", err)
 	}
 
 	migrationManager, err := migrations.NewManager(cfg.Database.DatabaseDSN)
 	if err != nil {
-		appLogger.Error("create migrations manager", zap.Error(err))
+		logger.Error("create migrations manager", zap.Error(err))
 	}
 
 	migrateCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	err = migrationManager.Wait(migrateCtx)
 	if err != nil {
-		appLogger.Error("wait migrations", zap.Error(err))
+		logger.Error("wait migrations", zap.Error(err))
 	}
-
-	logging.SetInternalGRPCLogger(logger.Named("grpc_logger"))
 
 	healthMetricsHandler := tracing.NewGracefulMetricsServer()
 	metricsServer := &http.Server{
@@ -67,22 +63,18 @@ func Run() error {
 
 	tp, err := tracing.NewTracingProvider(cfg.Tracing.ProviderEndpoint, cfg.Tracing.TracerName)
 	if err != nil {
-		appLogger.Error("create tracing provider", zap.Error(err))
+		logger.Error("create tracing provider", zap.Error(err))
 		return fmt.Errorf("creating tracing provider: %v", err)
 	}
 
 	rootRouter.Use(otelmiddleware.Middleware("tits"))
-
-	wsHub := websockethub.NewWebsocketsHub(logger)
-	wsHandler := wshandler.NewWebsocketHandler(logger, wsHub.ClientsChannel())
-	wsHandler.Register(rootRouter)
 
 	minioClient, err := minio.New(cfg.Minio.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.Minio.AccessKey, cfg.Minio.SecretKey, ""),
 		Secure: cfg.Minio.UseSSL,
 	})
 	if err != nil {
-		appLogger.Error("creating minio client", zap.Error(err))
+		logger.Error("creating minio client", zap.Error(err))
 		return fmt.Errorf("creating minio client: %v", err)
 	}
 
@@ -91,12 +83,18 @@ func Run() error {
 	database := postgres.NewPostgresDatabase(cfg.Database.DatabaseDSN)
 	titsRepo := postgres.NewTitsRepository(database)
 
-	titsService := titssvc.NewService(titsRepo, minioStorage, logger, wsHub.MessagesChannel(), cfg.Images.OptimizerEndpoint)
+	msgChan := make(chan domain.WSMessage)
+	centrifugeRunner, err := centrifuge.NewService(msgChan, cfg.Centrifuge, "boobs_dev", logger)
+	if err != nil {
+		return err
+	}
+
+	titsService := titssvc.NewService(titsRepo, minioStorage, logger, msgChan, cfg.Images.OptimizerEndpoint)
 
 	titsHttpService := titshandlers.NewTitsHandler(titsService)
 	titsHttpService.Register(rootRouter)
 
-	authhandler := authhandlers.NewAuthHandler()
+	authhandler := authhandlers.NewAuthHandler(cfg.Centrifuge.SigningKey)
 	authhandler.Register(rootRouter)
 
 	rootServer := &http.Server{
@@ -131,7 +129,7 @@ func Run() error {
 	}))
 
 	obs.AddUpper(func(ctx context.Context) {
-		wsHub.Run(ctx)
+		centrifugeRunner.Run(ctx)
 	})
 
 	obs.AddUpper(func(ctx context.Context) {
@@ -143,7 +141,6 @@ func Run() error {
 		case <-ctx.Done():
 		case <-httpRootServer.Dead():
 		case <-httpMetricsServer.Dead():
-		case <-wsHub.Dead():
 		case <-abyssKeeper.Dead():
 		}
 	})

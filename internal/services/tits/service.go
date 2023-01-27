@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/boobsrate/core/internal/domain"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +21,7 @@ type Service struct {
 
 	wsChannel chan domain.WSMessage
 
-	log *otelzap.Logger
+	log *zap.Logger
 }
 
 func NewService(db Database, storage Storage, log *zap.Logger, wsChannel chan domain.WSMessage, optimizerURL string) *Service {
@@ -31,7 +30,7 @@ func NewService(db Database, storage Storage, log *zap.Logger, wsChannel chan do
 		storage:      storage,
 		wsChannel:    wsChannel,
 		optimizerURL: optimizerURL,
-		log:          otelzap.New(log.Named("tits_service")),
+		log:          log.Named("tits_service"),
 	}
 }
 
@@ -59,20 +58,20 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 
 	err := s.storage.CreateImageFromFile(ctx, filename, filePath)
 	if err != nil {
-		s.log.Ctx(ctx).Error("create tits from file:", zap.Error(err))
+		s.log.Error("create tits from file:", zap.Error(err))
 		return err
 	}
 
 	webpImage, err := s.getWebpImage(ctx, filename)
 	if err != nil {
-		s.log.Ctx(ctx).Error("get webp image:", zap.Error(err))
+		s.log.Error("get webp image:", zap.Error(err))
 		return err
 	}
 
 	webpFilename := strings.Replace(filename, ".jpg", ".webp", 1)
 	err = s.storage.CreateImageFromBytes(ctx, webpFilename, webpImage)
 	if err != nil {
-		s.log.Ctx(ctx).Error("create webp image:", zap.Error(err))
+		s.log.Error("create webp image:", zap.Error(err))
 		return err
 	}
 
@@ -82,7 +81,7 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 		Rating:    0,
 	})
 	if err != nil {
-		s.log.Ctx(ctx).Error("create tits in db: ", zap.Error(err))
+		s.log.Error("create tits in db: ", zap.Error(err))
 		//return err
 	}
 	return nil
@@ -91,7 +90,7 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 func (s *Service) GetTits(ctx context.Context) ([]domain.Tits, error) {
 	tits, err := s.db.GetTits(ctx)
 	if err != nil {
-		s.log.Ctx(ctx).Error("get tits from db", zap.Error(err))
+		s.log.Error("get tits from db", zap.Error(err))
 		return nil, err
 	}
 
@@ -107,7 +106,7 @@ func (s *Service) GetTits(ctx context.Context) ([]domain.Tits, error) {
 func (s *Service) GetTop(ctx context.Context, limit int, abyss bool) ([]domain.Tits, error) {
 	tits, err := s.db.GetTop(ctx, limit, abyss)
 	if err != nil {
-		s.log.Ctx(ctx).Error("get tits from db", zap.Error(err))
+		s.log.Error("get tits from db", zap.Error(err))
 		return nil, err
 	}
 
@@ -123,7 +122,7 @@ func (s *Service) GetTop(ctx context.Context, limit int, abyss bool) ([]domain.T
 func (s *Service) IncreaseRating(ctx context.Context, titsID string) error {
 	newRating, err := s.db.IncreaseRating(ctx, titsID)
 	if err != nil {
-		s.log.Ctx(ctx).Error("increase rating in db", zap.Error(err))
+		s.log.Error("increase rating in db", zap.Error(err))
 		return err
 	}
 
@@ -135,7 +134,7 @@ func (s *Service) IncreaseRating(ctx context.Context, titsID string) error {
 func (s *Service) Report(ctx context.Context, titsID string) error {
 	err := s.db.Report(ctx, titsID)
 	if err != nil {
-		s.log.Ctx(ctx).Error("report tits in db", zap.Error(err))
+		s.log.Error("report tits in db", zap.Error(err))
 		return err
 	}
 
@@ -145,7 +144,7 @@ func (s *Service) Report(ctx context.Context, titsID string) error {
 func (s *Service) GetReports(ctx context.Context, titsID string) (int, error) {
 	reports, err := s.db.GetReportsCount(ctx, titsID)
 	if err != nil {
-		s.log.Ctx(ctx).Error("get reports count from db", zap.Error(err))
+		s.log.Error("get reports count from db", zap.Error(err))
 		return 0, err
 	}
 
@@ -155,7 +154,7 @@ func (s *Service) GetReports(ctx context.Context, titsID string) (int, error) {
 func (s *Service) MoveToAbyss(ctx context.Context, titsID string) error {
 	err := s.db.MoveToAbyss(ctx, titsID)
 	if err != nil {
-		s.log.Ctx(ctx).Error("move to abyss in db", zap.Error(err))
+		s.log.Error("move to abyss in db", zap.Error(err))
 		return err
 	}
 	return nil
@@ -164,7 +163,7 @@ func (s *Service) MoveToAbyss(ctx context.Context, titsID string) error {
 func (s *Service) GetTitsWithReportsThreshold(ctx context.Context, reportsThreshold int) ([]domain.Tits, error) {
 	tits, err := s.db.GetTitsWithReportsThreshold(ctx, reportsThreshold)
 	if err != nil {
-		s.log.Ctx(ctx).Error("get tits from db", zap.Error(err))
+		s.log.Error("get tits from db", zap.Error(err))
 		return nil, err
 	}
 

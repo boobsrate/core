@@ -7,20 +7,19 @@ import (
 	"io/ioutil"
 	"sync"
 
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
 )
 
 const titsPath = "assets/images"
 
 type Service struct {
-	log         *otelzap.Logger
+	log         *zap.Logger
 	titsService TitsService
 }
 
 func NewService(log *zap.Logger, titsService TitsService) *Service {
 	return &Service{
-		log:         otelzap.New(log.Named("initiator")),
+		log:         log.Named("initiator"),
 		titsService: titsService,
 	}
 }

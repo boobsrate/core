@@ -5,12 +5,24 @@ import (
 )
 
 type Configuration struct {
-	Server   ServerConfiguration
-	Database DatabaseConfig
-	Tracing  TracingConfig
-	Metrics  MetricsConfig
-	Minio    MinioConfig
-	Images   ImagesConfig
+	Base       BaseConfig
+	Centrifuge CentrifugeConfiguration
+	Server     ServerConfiguration
+	Database   DatabaseConfig
+	Tracing    TracingConfig
+	Metrics    MetricsConfig
+	Minio      MinioConfig
+	Images     ImagesConfig
+}
+
+type BaseConfig struct {
+	Env string `env:"ENV" envDefault:"dev"`
+}
+
+type CentrifugeConfiguration struct {
+	GRPCAddress string `env:"CENTRIFUGE_GRPC_ADDRESS" envDefault:"centrifuge.centrifuge:10000"`
+	ApiToken    string `env:"CENTRIFUGE_API_TOKEN"`
+	SigningKey  string `env:"CENTRIFUGE_SIGNING_KEY"`
 }
 
 type ServerConfiguration struct {
@@ -20,7 +32,7 @@ type ServerConfiguration struct {
 
 type ImagesConfig struct {
 	PublicEndpoint    string `env:"IMAGES_PUBLIC_ENDPOINT" envDefault:"https://s3.rate-tits.online"`
-	OptimizerEndpoint string `env:"IMAGES_OPTIMIZER_ENDPOINT" envDefault:"http://image-optimizer.images:3000"`
+	OptimizerEndpoint string `env:"IMAGES_OPTIMIZER_ENDPOINT" envDefault:"https://img.optimizer.akuzyashin.pw/"`
 }
 
 type MinioConfig struct {
