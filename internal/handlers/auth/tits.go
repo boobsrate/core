@@ -65,11 +65,14 @@ func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleGetToken(w http.ResponseWriter, r *http.Request) {
 	// Send token back to frontend
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer:    "boobs-backend",
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-	})
+	customClaims := jwt.MapClaims{
+		"channel": "boobs_dev",
+		"iss": "boobs-backend",
+		"exp": jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		"iat": jwt.NewNumericDate(time.Now()),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, customClaims)
 
 	// Sign the JWT using a secret key
 	secret := []byte(h.cfKey)
