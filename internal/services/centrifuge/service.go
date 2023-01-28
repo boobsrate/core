@@ -2,6 +2,7 @@ package centrifuge
 
 import (
 	"context"
+	"time"
 
 	"github.com/boobsrate/core/internal/config"
 	"github.com/boobsrate/core/internal/domain"
@@ -45,10 +46,29 @@ func (s *Service) Run(ctx context.Context) {
 	}
 	s.log.Info("centrifuge info", zap.Any("resp", resp))
 
+	ticker := time.NewTicker(time.Second * 10)
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-ticker.C:
+			resp, err := s.cli.Info(context.Background(), &centrifugeApi.InfoRequest{})
+			if err != nil {
+				s.log.Error("error getting info", zap.Error(err))
+			}
+			clientCount := 0
+			for _, node := range resp.GetResult().GetNodes() {
+				clientCount += int(node.GetNumClients())
+			}
+			s.log.Info("centrifuge info", zap.Any("resp", resp), zap.Int("client_count", clientCount))
+			// make online msg
+			s.wsChannel <- domain.WSMessage{
+				Type: domain.WSMessageTypeOnlineUsers,
+				Message: domain.WSOnlineUsersMessage{
+					Online:    clientCount,
+				},
+			}
 		default:
 
 		}
