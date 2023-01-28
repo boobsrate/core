@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/boobsrate/core/internal/domain"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
 )
@@ -65,10 +66,12 @@ func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleGetToken(w http.ResponseWriter, r *http.Request) {
 	// Send token back to frontend
 
+	id := domain.NewID()
+
 	customClaims := jwt.MapClaims{
-		"sub":     "",
-		"exp":     jwt.NewNumericDate(time.Now().Add(time.Hour)),
-		"iat":     jwt.NewNumericDate(time.Now()),
+		"sub": id,
+		"exp": jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		"iat": jwt.NewNumericDate(time.Now()),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, customClaims)
@@ -77,5 +80,16 @@ func (h *Handler) handleGetToken(w http.ResponseWriter, r *http.Request) {
 	secret := []byte(h.cfKey)
 	tokenStr, _ := token.SignedString(secret)
 
-	json.NewEncoder(w).Encode(map[string]string{"token": tokenStr})
+	customClaimsChan := jwt.MapClaims{
+		"sub":     id,
+		"channel": "boobs_dev",
+		"exp":     jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		"iat":     jwt.NewNumericDate(time.Now()),
+	}
+
+	chanToken := jwt.NewWithClaims(jwt.SigningMethodHS256, customClaimsChan)
+
+	chanTokenStr, _ := chanToken.SignedString(secret)
+
+	json.NewEncoder(w).Encode(map[string]string{"token": tokenStr, "chan_token": chanTokenStr})
 }
