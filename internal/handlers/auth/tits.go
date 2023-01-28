@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/boobsrate/core/internal/domain"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
 )
@@ -65,11 +66,13 @@ func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleGetToken(w http.ResponseWriter, r *http.Request) {
 	// Send token back to frontend
 
+	id := domain.NewID()
 	customClaims := jwt.MapClaims{
 		"channel": "boobs_dev",
-		"iss": "boobs-backend",
-		"exp": jwt.NewNumericDate(time.Now().Add(time.Hour)),
-		"iat": jwt.NewNumericDate(time.Now()),
+		"iss":     "boobs-backend",
+		"sub":     id,
+		"exp":     jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		"iat":     jwt.NewNumericDate(time.Now()),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, customClaims)
