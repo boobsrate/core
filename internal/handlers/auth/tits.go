@@ -66,7 +66,6 @@ func (h *Handler) handleGetToken(w http.ResponseWriter, r *http.Request) {
 	// Send token back to frontend
 
 	customClaims := jwt.MapClaims{
-		"channel": "boobs_dev",
 		"sub":     "",
 		"exp":     jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		"iat":     jwt.NewNumericDate(time.Now()),
