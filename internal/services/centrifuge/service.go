@@ -47,7 +47,7 @@ func (s *Service) Run(ctx context.Context) {
 	s.log.Info("centrifuge info", zap.Any("resp", resp))
 
 	go func(ctx context.Context) {
-		ticker := time.NewTicker(time.Second * 10)
+		ticker := time.NewTicker(time.Minute)
 		defer ticker.Stop()
 		for {
 			select {
@@ -67,7 +67,7 @@ func (s *Service) Run(ctx context.Context) {
 				msg := domain.WSMessage{
 					Type: domain.WSMessageTypeOnlineUsers,
 					Message: domain.WSOnlineUsersMessage{
-						Online:    clientCount,
+						Online: clientCount,
 					},
 				}
 
@@ -91,7 +91,6 @@ func (s *Service) Run(ctx context.Context) {
 			}
 		}
 	}(ctx)
-
 
 	for {
 		select {
