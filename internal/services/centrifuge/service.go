@@ -47,6 +47,7 @@ func (s *Service) Run(ctx context.Context) {
 	s.log.Info("centrifuge info", zap.Any("resp", resp))
 
 	ticker := time.NewTicker(time.Second * 10)
+	defer ticker.Stop()
 
 	for {
 		select {
@@ -63,12 +64,28 @@ func (s *Service) Run(ctx context.Context) {
 			}
 			s.log.Info("centrifuge info", zap.Any("resp", resp), zap.Int("client_count", clientCount))
 			// make online msg
-			s.wsChannel <- domain.WSMessage{
+			msg := domain.WSMessage{
 				Type: domain.WSMessageTypeOnlineUsers,
 				Message: domain.WSOnlineUsersMessage{
 					Online:    clientCount,
 				},
 			}
+
+			// send to centrifuge
+			b, err := msg.MarshalJSON()
+			if err != nil {
+				s.log.Error("failed to marshal message", zap.Error(err))
+				continue
+			}
+			respB, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
+				Channels: []string{s.chanName},
+				Data:     b,
+			})
+			if err != nil {
+				s.log.Error("error while publishing message to centrifuge", zap.Error(err))
+			}
+
+			s.log.Info("published message to centrifuge", zap.Any("resp", respB))
 		default:
 
 		}
