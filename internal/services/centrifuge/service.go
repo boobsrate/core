@@ -2,7 +2,6 @@ package centrifuge
 
 import (
 	"context"
-	"time"
 
 	"github.com/boobsrate/core/internal/config"
 	"github.com/boobsrate/core/internal/domain"
@@ -46,14 +45,28 @@ func (s *Service) Run(ctx context.Context) {
 	}
 	s.log.Info("centrifuge info", zap.Any("resp", resp))
 
-	go func(ctx context.Context) {
-		ticker := time.NewTicker(time.Minute)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg := <-s.wsChannel:
+			b, err := msg.MarshalJSON()
+			if err != nil {
+				s.log.Error("failed to marshal message", zap.Error(err))
+				continue
+			}
+
+			resp, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
+				Channels: []string{s.chanName},
+				Data:     b,
+			})
+			if err != nil {
+				s.log.Error("error while publishing message to centrifuge", zap.Error(err))
+			}
+
+			s.log.Info("published message to centrifuge", zap.Any("resp", resp))
+
+			go func() {
 				resp, err := s.cli.Info(context.Background(), &centrifugeApi.InfoRequest{})
 				if err != nil {
 					s.log.Error("error getting info", zap.Error(err))
@@ -75,7 +88,7 @@ func (s *Service) Run(ctx context.Context) {
 				b, err := msg.MarshalJSON()
 				if err != nil {
 					s.log.Error("failed to marshal message", zap.Error(err))
-					continue
+					return
 				}
 				respB, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
 					Channels: []string{s.chanName},
@@ -86,32 +99,7 @@ func (s *Service) Run(ctx context.Context) {
 				}
 
 				s.log.Info("published message to centrifuge", zap.Any("resp", respB))
-			default:
-
-			}
-		}
-	}(ctx)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case msg := <-s.wsChannel:
-			b, err := msg.MarshalJSON()
-			if err != nil {
-				s.log.Error("failed to marshal message", zap.Error(err))
-				continue
-			}
-
-			resp, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
-				Channels: []string{s.chanName},
-				Data:     b,
-			})
-			if err != nil {
-				s.log.Error("error while publishing message to centrifuge", zap.Error(err))
-			}
-
-			s.log.Info("published message to centrifuge", zap.Any("resp", resp))
+			}()
 		}
 	}
 }
