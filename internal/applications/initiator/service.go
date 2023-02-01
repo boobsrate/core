@@ -31,7 +31,7 @@ func (s *Service) Run() {
 	defer s.log.Info("Tits uploader stopped")
 	ctx := context.Background()
 
-	guard := make(chan struct{}, 300)
+	guard := make(chan struct{}, 50)
 	wg := &sync.WaitGroup{}
 	var allUrls []string
 
@@ -70,7 +70,7 @@ func (s *Service) Run() {
 	s.log.Info("Total urls", zap.Int("count", totalFiles))
 
 	for idx := range allUrls {
-		if idx <= 6081 {
+		if idx <= 11264 {
 			continue
 		}
 		guard <- struct{}{}
