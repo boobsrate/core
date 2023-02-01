@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const defaultTitsCreateTimeout = time.Second * 30
+const defaultTitsCreateTimeout = time.Second * 60
 
 type Service struct {
 	db           Database
@@ -57,6 +57,41 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 	defer cancel()
 
 	err := s.storage.CreateImageFromFile(ctx, filename, filePath)
+	if err != nil {
+		s.log.Error("create tits from file:", zap.Error(err))
+		return err
+	}
+
+	webpImage, err := s.getWebpImage(ctx, filename)
+	if err != nil {
+		s.log.Error("get webp image:", zap.Error(err))
+		return err
+	}
+
+	webpFilename := strings.Replace(filename, ".jpg", ".webp", 1)
+	err = s.storage.CreateImageFromBytes(ctx, webpFilename, webpImage)
+	if err != nil {
+		s.log.Error("create webp image:", zap.Error(err))
+		return err
+	}
+
+	err = s.db.CreateTits(ctx, domain.Tits{
+		ID:        strings.ReplaceAll(filename, ".jpg", ""),
+		CreatedAt: time.Now().UTC(),
+		Rating:    0,
+	})
+	if err != nil {
+		s.log.Error("create tits in db: ", zap.Error(err))
+		//return err
+	}
+	return nil
+}
+
+func (s *Service) CreateTitsFromBytes(ctx context.Context, filename string, file []byte) error {
+	ctx, cancel := context.WithTimeout(ctx, defaultTitsCreateTimeout)
+	defer cancel()
+
+	err := s.storage.CreateImageFromBytes(ctx, filename, file)
 	if err != nil {
 		s.log.Error("create tits from file:", zap.Error(err))
 		return err
