@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/boobsrate/core/internal/domain"
 	"go.uber.org/zap"
@@ -17,12 +18,16 @@ import (
 type Service struct {
 	log         *zap.Logger
 	titsService TitsService
+	httpClient *http.Client
 }
 
 func NewService(log *zap.Logger, titsService TitsService) *Service {
 	return &Service{
 		log:         log.Named("initiator"),
 		titsService: titsService,
+		httpClient:  &http.Client{
+			Timeout: time.Second * 10,
+		},
 	}
 }
 
@@ -31,7 +36,7 @@ func (s *Service) Run() {
 	defer s.log.Info("Tits uploader stopped")
 	ctx := context.Background()
 
-	guard := make(chan struct{}, 50)
+	guard := make(chan struct{}, 500)
 	wg := &sync.WaitGroup{}
 	var allUrls []string
 
@@ -70,8 +75,11 @@ func (s *Service) Run() {
 	s.log.Info("Total urls", zap.Int("count", totalFiles))
 
 	for idx := range allUrls {
-		if idx <= 11264 {
+		if idx <= 28818 {
 			continue
+		}
+		if idx%3000 == 0 {
+			time.Sleep(time.Second * 60)
 		}
 		guard <- struct{}{}
 		wg.Add(1)
@@ -81,6 +89,8 @@ func (s *Service) Run() {
 }
 
 func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struct{}, idx int, url string, totalFiles int) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*90)
+	defer cancel()
 	s.log.Info(
 		"Creating new tits",
 		zap.String("url", url),
@@ -88,7 +98,8 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 		zap.Int("total", totalFiles),
 	)
 
-	res, err := http.Get(url)
+
+	res, err := s.httpClient.Get(url)
 	if err != nil {
 		fmt.Printf("Error downloading image from URL %s: %v\n", url, err)
 		return
