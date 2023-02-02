@@ -18,14 +18,14 @@ import (
 type Service struct {
 	log         *zap.Logger
 	titsService TitsService
-	httpClient *http.Client
+	httpClient  *http.Client
 }
 
 func NewService(log *zap.Logger, titsService TitsService) *Service {
 	return &Service{
 		log:         log.Named("initiator"),
 		titsService: titsService,
-		httpClient:  &http.Client{
+		httpClient: &http.Client{
 			Timeout: time.Second * 10,
 		},
 	}
@@ -75,10 +75,10 @@ func (s *Service) Run() {
 	s.log.Info("Total urls", zap.Int("count", totalFiles))
 
 	for idx := range allUrls {
-		if idx <= 28818 {
+		if idx <= 35071 {
 			continue
 		}
-		if idx%3000 == 0 {
+		if idx%1000 == 0 {
 			time.Sleep(time.Second * 60)
 		}
 		guard <- struct{}{}
@@ -97,7 +97,6 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 		zap.Int("index", idx),
 		zap.Int("total", totalFiles),
 	)
-
 
 	res, err := s.httpClient.Get(url)
 	if err != nil {
