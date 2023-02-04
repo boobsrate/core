@@ -8,18 +8,11 @@ spec:
   jobTemplate:
     spec:
       template:
-        metadata:
-          labels:
-            app: {{ include "boobsrate-core.name" . }}-downloader
-            chart: {{ include "boobsrate-core.chart" . }}
-            release: {{ .Release.Name }}
-            heritage: {{ .Release.Service }}
         spec:
           {{- with .Values.imagePullSecrets }}
           imagePullSecrets:
             {{- toYaml . | nindent 8 }}
           {{- end }}
-          restartPolicy: Never
           containers:
             - name: {{ .Chart.Name }}-downloader
               image: "{{ .Values.image.name }}"
