@@ -26,6 +26,15 @@ func (r *TasksRepository) GetTask(ctx context.Context) (domain.Task, error) {
 	return TaskModelToDomain(task), nil
 }
 
+func (r *TasksRepository) GetCountUnprocessedTasks(ctx context.Context) (int, error) {
+	var count int
+	count, err := r.db.NewSelect().Model((*tasksModel)(nil)).Where("processed = False").Count(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func (r *TasksRepository) CreateTask(ctx context.Context, task domain.Task) error {
 	model := tasksModel{}
 	model.FromDomain(task)

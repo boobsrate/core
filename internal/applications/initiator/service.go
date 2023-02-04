@@ -34,6 +34,49 @@ func NewService(log *zap.Logger, titsService TitsService, taskService TaskRepo) 
 }
 
 func (s *Service) Run() {
+	s.log.Info("Tits downloader started")
+	defer s.log.Info("Tits downloader stopped")
+	ctx := context.Background()
+
+	totalTasks, err := s.taskService.GetCountUnprocessedTasks(ctx)
+	if err != nil {
+		return
+	}
+
+	guard := make(chan struct{}, 500)
+	wg := &sync.WaitGroup{}
+
+	for i:=0; i<=totalTasks; i++ {
+		task, err := s.taskService.GetTask(ctx)
+		if err != nil {
+			continue
+		}
+		s.log.Info("process idx", zap.Int("idx", i))
+		guard <- struct{}{}
+		wg.Add(1)
+		go s.work(ctx, wg, guard, i, task.Url, totalTasks, task.ID)
+	}
+
+	totalTasks, err = s.taskService.GetCountUnprocessedTasks(ctx)
+	if err != nil {
+		return
+	}
+
+	for i:=0; i<=totalTasks; i++ {
+		task, err := s.taskService.GetTask(ctx)
+		if err != nil {
+			continue
+		}
+		s.log.Info("process idx", zap.Int("idx", i))
+		guard <- struct{}{}
+		wg.Add(1)
+		go s.work(ctx, wg, guard, i, task.Url, totalTasks, task.ID)
+	}
+
+	wg.Wait()
+}
+
+func (s *Service) RunFill() {
 	s.log.Info("Tits uploader started")
 	defer s.log.Info("Tits uploader stopped")
 	ctx := context.Background()
@@ -96,7 +139,7 @@ func (s *Service) Run() {
 	//wg.Wait()
 }
 
-func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struct{}, idx int, url string, totalFiles int) {
+func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struct{}, idx int, url string, totalFiles int, imgID string) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*90)
 	defer cancel()
 	s.log.Info(
@@ -113,13 +156,14 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 	}
 
 	if res.StatusCode != 200 {
+		fmt.Printf("Error downloading image from URL %s: Status code: %d\n", url, res.StatusCode)
 		return
 	}
 	defer res.Body.Close()
 
 	b, err := io.ReadAll(res.Body)
 
-	err = s.titsService.CreateTitsFromBytes(ctx, fmt.Sprintf("%s.jpg", domain.NewID()), b)
+	err = s.titsService.CreateTitsFromBytes(ctx, fmt.Sprintf("%s.jpg", imgID), b)
 	if err != nil {
 		s.log.Error("Failed to create tits",
 			zap.String("url", url),
