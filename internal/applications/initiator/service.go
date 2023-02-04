@@ -40,15 +40,17 @@ func (s *Service) Run() {
 
 	totalTasks, err := s.taskService.GetCountUnprocessedTasks(ctx)
 	if err != nil {
+		s.log.Error("get total tasks", zap.Error(err))
 		return
 	}
 
 	guard := make(chan struct{}, 500)
 	wg := &sync.WaitGroup{}
 
-	for i:=0; i<=totalTasks; i++ {
+	for i := 0; i <= totalTasks; i++ {
 		task, err := s.taskService.GetTask(ctx)
 		if err != nil {
+			s.log.Error("get task", zap.Error(err))
 			continue
 		}
 		s.log.Info("process idx", zap.Int("idx", i))
@@ -62,7 +64,7 @@ func (s *Service) Run() {
 		return
 	}
 
-	for i:=0; i<=totalTasks; i++ {
+	for i := 0; i <= totalTasks; i++ {
 		task, err := s.taskService.GetTask(ctx)
 		if err != nil {
 			continue

@@ -19,7 +19,7 @@ func NewTasksRepository(db *bun.DB) *TasksRepository {
 
 func (r *TasksRepository) GetTask(ctx context.Context) (domain.Task, error) {
 	var task tasksModel
-	err := r.db.NewSelect().Model(&task).Where("processed = False").Order("?").Limit(1).Scan(ctx)
+	err := r.db.NewSelect().Model(&task).Where("processed = False").OrderExpr("random()").Limit(1).Scan(ctx)
 	if err != nil {
 		return domain.Task{}, err
 	}
