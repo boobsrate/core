@@ -30,3 +30,4 @@ spec:
               {{- end }}
               imagePullPolicy: Always
               command: [ {{ .Values.image.init_command }} ]
+          restartPolicy: Never
