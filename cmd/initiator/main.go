@@ -39,6 +39,8 @@ func main() {
 	titsStorage := storage.NewMinioStorage(minioClient, cfg.Minio.Bucket, "" /* publicURL */)
 	titsService := tits.NewService(titsRepo, titsStorage, logger, nil, cfg.Images.OptimizerEndpoint)
 
-	initiatorApp := initiator.NewService(logger, titsService)
+	tasksRepo := postgres.NewTasksRepository(pgDB)
+
+	initiatorApp := initiator.NewService(logger, titsService, tasksRepo)
 	initiatorApp.Run()
 }

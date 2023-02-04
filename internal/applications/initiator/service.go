@@ -18,13 +18,15 @@ import (
 type Service struct {
 	log         *zap.Logger
 	titsService TitsService
+	taskService TaskRepo
 	httpClient  *http.Client
 }
 
-func NewService(log *zap.Logger, titsService TitsService) *Service {
+func NewService(log *zap.Logger, titsService TitsService, taskService TaskRepo) *Service {
 	return &Service{
 		log:         log.Named("initiator"),
 		titsService: titsService,
+		taskService: taskService,
 		httpClient: &http.Client{
 			Timeout: time.Second * 10,
 		},
@@ -36,8 +38,8 @@ func (s *Service) Run() {
 	defer s.log.Info("Tits uploader stopped")
 	ctx := context.Background()
 
-	guard := make(chan struct{}, 500)
-	wg := &sync.WaitGroup{}
+	//guard := make(chan struct{}, 500)
+	//wg := &sync.WaitGroup{}
 	var allUrls []string
 
 	err := filepath.Walk("assets/urls/", func(path string, info os.FileInfo, err error) error {
@@ -75,17 +77,23 @@ func (s *Service) Run() {
 	s.log.Info("Total urls", zap.Int("count", totalFiles))
 
 	for idx := range allUrls {
-		if idx <= 35071 {
-			continue
+		err := s.taskService.CreateTask(ctx, domain.Task{
+			ID:        domain.NewID(),
+			CreatedAt: time.Now(),
+			Processed: false,
+			Url:       allUrls[idx],
+			Status:    "",
+		})
+		if err != nil {
+			s.log.Error("create task: ", zap.Error(err))
 		}
-		if idx%1000 == 0 {
-			time.Sleep(time.Second * 60)
-		}
-		guard <- struct{}{}
-		wg.Add(1)
-		go s.work(ctx, wg, guard, idx, allUrls[idx], totalFiles)
+		s.log.Info("Task created", zap.Int("index", idx), zap.Int("total", totalFiles))
+		continue
+		//guard <- struct{}{}
+		//wg.Add(1)
+		//go s.work(ctx, wg, guard, idx, allUrls[idx], totalFiles)
 	}
-	wg.Wait()
+	//wg.Wait()
 }
 
 func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struct{}, idx int, url string, totalFiles int) {
