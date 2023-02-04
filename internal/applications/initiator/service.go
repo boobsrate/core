@@ -54,7 +54,7 @@ func (s *Service) Run() {
 		s.log.Info("process idx", zap.Int("idx", i))
 		guard <- struct{}{}
 		wg.Add(1)
-		go s.work(ctx, wg, guard, i, task.Url, totalTasks, task.ID)
+		go s.work(ctx, wg, guard, i, task.Url, totalTasks, task)
 	}
 
 	totalTasks, err = s.taskService.GetCountUnprocessedTasks(ctx)
@@ -70,7 +70,7 @@ func (s *Service) Run() {
 		s.log.Info("process idx", zap.Int("idx", i))
 		guard <- struct{}{}
 		wg.Add(1)
-		go s.work(ctx, wg, guard, i, task.Url, totalTasks, task.ID)
+		go s.work(ctx, wg, guard, i, task.Url, totalTasks, task)
 	}
 
 	wg.Wait()
@@ -139,7 +139,7 @@ func (s *Service) RunFill() {
 	//wg.Wait()
 }
 
-func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struct{}, idx int, url string, totalFiles int, imgID string) {
+func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struct{}, idx int, url string, totalFiles int, task domain.Task) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*90)
 	defer cancel()
 	s.log.Info(
@@ -163,7 +163,7 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 
 	b, err := io.ReadAll(res.Body)
 
-	err = s.titsService.CreateTitsFromBytes(ctx, fmt.Sprintf("%s.jpg", imgID), b)
+	err = s.titsService.CreateTitsFromBytes(ctx, fmt.Sprintf("%s.jpg", task.ID), b)
 	if err != nil {
 		s.log.Error("Failed to create tits",
 			zap.String("url", url),
@@ -173,6 +173,8 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 		)
 	}
 	defer func() {
+		task.Processed = true
+		s.taskService.UpdateTask(context.Background(), task)
 		wg.Done()
 		<-guard
 	}()
