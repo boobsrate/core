@@ -3,16 +3,12 @@ kind: CronJob
 metadata:
   name: {{ include "boobsrate-core.fullname" . }}-downloader-{{ randAlphaNum 6 | lower }}
 spec:
-  schedule: "*/30 * * * *"
+  schedule: "*/10 * * * *"
   concurrencyPolicy: Replace
   jobTemplate:
     spec:
       template:
         spec:
-          {{- with .Values.imagePullSecrets }}
-          imagePullSecrets:
-            {{- toYaml . | nindent 8 }}
-          {{- end }}
           containers:
             - name: {{ .Chart.Name }}-downloader
               image: "{{ .Values.image.name }}"

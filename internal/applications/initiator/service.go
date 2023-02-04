@@ -44,7 +44,7 @@ func (s *Service) Run() {
 		return
 	}
 
-	guard := make(chan struct{}, 500)
+	guard := make(chan struct{}, 1000)
 	wg := &sync.WaitGroup{}
 
 	for i := 0; i <= totalTasks; i++ {
