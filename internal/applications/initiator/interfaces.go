@@ -13,7 +13,7 @@ type TitsService interface {
 
 type TaskRepo interface {
 	GetTask(ctx context.Context) (domain.Task, error)
-	CreateTask(ctx context.Context, task domain.Task) error
+	CreateTask(ctx context.Context, task []domain.Task) error
 	UpdateTask(ctx context.Context, task domain.Task) error
 	GetCountUnprocessedTasks(ctx context.Context) (int, error)
 }

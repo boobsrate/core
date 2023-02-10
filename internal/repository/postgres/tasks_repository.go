@@ -35,10 +35,13 @@ func (r *TasksRepository) GetCountUnprocessedTasks(ctx context.Context) (int, er
 	return count, nil
 }
 
-func (r *TasksRepository) CreateTask(ctx context.Context, task domain.Task) error {
-	model := tasksModel{}
-	model.FromDomain(task)
-	_, err := r.db.NewInsert().Model(&model).Exec(ctx)
+func (r *TasksRepository) CreateTask(ctx context.Context, task []domain.Task) error {
+	var models []tasksModel
+	models = make([]tasksModel, len(task))
+	for i, t := range task {
+		models[i].FromDomain(t)
+	}
+	_, err := r.db.NewInsert().Model(&models).On("CONFLICT (url) DO nothing").Exec(ctx)
 	return err
 }
 

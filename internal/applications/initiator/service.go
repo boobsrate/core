@@ -44,7 +44,7 @@ func (s *Service) Run() {
 		return
 	}
 
-	guard := make(chan struct{}, 1000)
+	guard := make(chan struct{}, 500)
 	wg := &sync.WaitGroup{}
 
 	for i := 0; i <= totalTasks; i++ {
@@ -105,19 +105,27 @@ func (s *Service) RunFill() {
 
 	s.log.Info("Total urls", zap.Int("count", totalFiles))
 
+	var tasks []domain.Task
+
 	for idx := range allUrls {
-		err := s.taskService.CreateTask(ctx, domain.Task{
-			ID:        domain.NewID(),
-			CreatedAt: time.Now(),
-			Processed: false,
-			Url:       allUrls[idx],
-			Status:    "",
-		})
-		if err != nil {
-			s.log.Error("create task: ", zap.Error(err))
+		// create tasks in batches of 2000
+		if len(tasks) == 2000 {
+			err := s.taskService.CreateTask(ctx, tasks)
+			if err != nil {
+				s.log.Error("create task: ", zap.Error(err))
+			}
+			s.log.Info("Task created", zap.Int("index", idx), zap.Int("total", totalFiles))
+			tasks = []domain.Task{}
+		} else {
+			tasks = append(tasks, domain.Task{
+				ID:        domain.NewID(),
+				CreatedAt: time.Now(),
+				Processed: false,
+				Url:       allUrls[idx],
+				Status:    "",
+			})
 		}
-		s.log.Info("Task created", zap.Int("index", idx), zap.Int("total", totalFiles))
-		continue
+
 		//guard <- struct{}{}
 		//wg.Add(1)
 		//go s.work(ctx, wg, guard, idx, allUrls[idx], totalFiles)
