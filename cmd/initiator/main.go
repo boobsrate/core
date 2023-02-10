@@ -42,5 +42,6 @@ func main() {
 	tasksRepo := postgres.NewTasksRepository(pgDB)
 
 	initiatorApp := initiator.NewService(logger, titsService, tasksRepo)
-	initiatorApp.Run()
+	initiatorApp.RunFill()
+	//initiatorApp.Run()
 }
