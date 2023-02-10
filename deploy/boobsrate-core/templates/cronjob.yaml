@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: {{ include "boobsrate-core.fullname" . }}-downloader-{{ randAlphaNum 6 | lower }}
 spec:
-  schedule: "*/10 * * * *"
+  schedule: "*/30 * * * *"
   concurrencyPolicy: Replace
   jobTemplate:
     spec:

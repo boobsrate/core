@@ -59,22 +59,6 @@ func (s *Service) Run() {
 		go s.work(ctx, wg, guard, i, task.Url, totalTasks, task)
 	}
 
-	totalTasks, err = s.taskService.GetCountUnprocessedTasks(ctx)
-	if err != nil {
-		return
-	}
-
-	for i := 0; i <= totalTasks; i++ {
-		task, err := s.taskService.GetTask(ctx)
-		if err != nil {
-			continue
-		}
-		s.log.Info("process idx", zap.Int("idx", i))
-		guard <- struct{}{}
-		wg.Add(1)
-		go s.work(ctx, wg, guard, i, task.Url, totalTasks, task)
-	}
-
 	wg.Wait()
 }
 
@@ -143,7 +127,6 @@ func (s *Service) RunFill() {
 
 func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struct{}, idx int, url string, totalFiles int, task domain.Task) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*90)
-	defer cancel()
 	s.log.Info(
 		"Creating new tits",
 		zap.String("url", url),
@@ -154,16 +137,43 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 	res, err := s.httpClient.Get(url)
 	if err != nil {
 		fmt.Printf("Error downloading image from URL %s: %v\n", url, err)
+		task.Processed = true
+		_ = s.taskService.UpdateTask(context.Background(), task)
+		cancel()
+		wg.Done()
+		<-guard
 		return
 	}
 
 	if res.StatusCode != 200 {
 		fmt.Printf("Error downloading image from URL %s: Status code: %d\n", url, res.StatusCode)
+		task.Processed = true
+		_ = s.taskService.UpdateTask(context.Background(), task)
+		cancel()
+		wg.Done()
+		<-guard
 		return
 	}
-	defer res.Body.Close()
 
 	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		task.Processed = true
+		_ = s.taskService.UpdateTask(context.Background(), task)
+		cancel()
+		wg.Done()
+		<-guard
+	}
+	_ = res.Body.Close()
+
+	// If 'b' size less than 700kb, return
+	if len(b) < 600*1024 {
+		task.Processed = true
+		_ = s.taskService.UpdateTask(context.Background(), task)
+		cancel()
+		wg.Done()
+		<-guard
+		return
+	}
 
 	err = s.titsService.CreateTitsFromBytes(ctx, fmt.Sprintf("%s.jpg", task.ID), b)
 	if err != nil {
@@ -174,10 +184,10 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 			zap.Error(err),
 		)
 	}
-	defer func() {
-		task.Processed = true
-		s.taskService.UpdateTask(context.Background(), task)
-		wg.Done()
-		<-guard
-	}()
+
+	task.Processed = true
+	_ = s.taskService.UpdateTask(context.Background(), task)
+	cancel()
+	wg.Done()
+	<-guard
 }
