@@ -9,7 +9,7 @@ import (
 
 const (
 	defaultCheckTimeout   = time.Second * 10
-	defaultAbyssThreshold = 5
+	defaultAbyssThreshold = 2
 )
 
 type Keeper struct {
