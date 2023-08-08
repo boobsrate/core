@@ -42,14 +42,6 @@ func Run() error {
 
 	logging.SetInternalGRPCLogger(logger.Named("grpc_logger"))
 
-	healthMetricsHandler := tracing.NewGracefulMetricsServer()
-	metricsServer := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.Metrics.Port),
-		Handler: healthMetricsHandler,
-	}
-
-	httpMetricsServer := server.NewGracefulServer(metricsServer, logger.Named("metrics_server"))
-
 	rootRouter := mux.NewRouter()
 
 	tp, err := tracing.NewTracingProvider(cfg.Tracing.ProviderEndpoint, cfg.Tracing.TracerName)
@@ -62,6 +54,27 @@ func Run() error {
 
 	loggingMiddleware := handlers.NewLoggingMiddleware(logger)
 	loggingMiddleware.Apply(rootRouter)
+
+	wsHub, wsHandler, minioClient, minioStorage, database, titsRepo, titsService, titsGrpcServer, titsHttpService, grpcServer, gracefulServer, rootServer, httpRootServer, obs := createServices(cfg, logger, rootRouter, appLogger)
+
+	registerHandlers(wsHub, wsHandler, titsHttpService, rootRouter)
+
+	createServers(gracefulServer, httpRootServer, obs)
+
+	runObserver(tp, wsHub, gracefulServer, httpRootServer, obs)
+
+	return obs.Run()
+}
+
+func createServices(cfg *config.Config, logger *zap.Logger, rootRouter *mux.Router, appLogger *zap.Logger) (*websockethub.WebsocketsHub, *wshandler.WebsocketHandler, *minio.Client, *minio2.MinioStorage, *postgres.PostgresDatabase, *postgres.TitsRepository, *tits.Service, *titspbv1.TitsGRPCServer, *tits2.TitsHandler, *grpc.Server, *grpc.GracefulServer, *http.Server, *server.GracefulServer, *observer.Observer) {
+	healthMetricsHandler := tracing.NewGracefulMetricsServer()
+	metricsServer := &http.Server{
+		Addr:    fmt.Sprintf(":%d", cfg.Metrics.Port),
+		Handler: healthMetricsHandler,
+	}
+
+	httpMetricsServer := server.NewGracefulServer(metricsServer, logger.Named("metrics_server"))
+
 	wsHub := websockethub.NewWebsocketsHub(logger)
 	wsHandler := wshandler.NewWebsocketHandler(logger, wsHub.ClientsChannel())
 	wsHandler.Register(rootRouter)
@@ -72,7 +85,7 @@ func Run() error {
 	})
 	if err != nil {
 		appLogger.Error("creating minio client", zap.Error(err))
-		return fmt.Errorf("creating minio client: %v", err)
+		return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil
 	}
 
 	minioStorage := minio2.NewMinioStorage(minioClient, cfg.Minio.Bucket, cfg.Images.PublicEndpoint)
@@ -101,18 +114,25 @@ func Run() error {
 
 	obs := observer.NewObserver()
 
+	return wsHub, wsHandler, minioClient, minioStorage, database, titsRepo, titsService, titsGrpcServer, titsHttpService, grpcServer, gracefulServer, rootServer, httpRootServer, obs
+}
+
+func registerHandlers(wsHub *websockethub.WebsocketsHub, wsHandler *wshandler.WebsocketHandler, titsHttpService *tits2.TitsHandler, rootRouter *mux.Router) {
+	wsHandler.Register(rootRouter)
+	titsHttpService.Register(rootRouter)
+}
+
+func createServers(gracefulServer *grpc.GracefulServer, httpRootServer *server.GracefulServer, obs *observer.Observer) {
 	obs.AddOpener(observer.OpenerFunc(func() error {
 		return gracefulServer.Serve()
 	}))
 
 	obs.AddOpener(observer.OpenerFunc(func() error {
-		return httpMetricsServer.Serve()
-	}))
-
-	obs.AddOpener(observer.OpenerFunc(func() error {
 		return httpRootServer.Serve()
 	}))
+}
 
+func runObserver(tp *tracing.TracingProvider, wsHub *websockethub.WebsocketsHub, gracefulServer *grpc.GracefulServer, httpRootServer *server.GracefulServer, obs *observer.Observer) {
 	obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
 		return gracefulServer.Shutdown(ctx)
 	}))
@@ -125,10 +145,6 @@ func Run() error {
 		return httpRootServer.Shutdown(ctx)
 	}))
 
-	obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
-		return httpMetricsServer.Shutdown(ctx)
-	}))
-
 	obs.AddUpper(func(ctx context.Context) {
 		wsHub.Run(ctx)
 	})
@@ -138,11 +154,6 @@ func Run() error {
 		case <-ctx.Done():
 		case <-gracefulServer.Dead():
 		case <-httpRootServer.Dead():
-		case <-httpMetricsServer.Dead():
-		case <-wsHub.Dead():
 		}
 	})
-
-	return obs.Run()
-
 }
