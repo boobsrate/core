@@ -32,22 +32,32 @@ func (s *GracefulServer) Serve() error {
 	s.log.Info("Server starting...")
 	defer s.log.Info("Server started")
 	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-		defer close(s.dead)
-
-		lis, err := net.Listen("tcp", s.addr)
-		if err != nil {
-			s.log.Error(fmt.Sprintf("listen: %v", err))
-			return
-		}
-		defer lis.Close() // nolint
-
-		if err := s.server.Serve(lis); err != nil {
-			s.log.Error(fmt.Sprintf("serve: %v", err))
-		}
-	}()
+	go s.startServer()
 	return nil
+}
+
+func (s *GracefulServer) startServer() {
+	defer s.wg.Done()
+	defer close(s.dead)
+
+	lis, err := net.Listen("tcp", s.addr)
+	if err != nil {
+		s.handleListenError(err)
+		return
+	}
+	defer lis.Close() // nolint
+
+	if err := s.server.Serve(lis); err != nil {
+		s.handleServeError(err)
+	}
+}
+
+func (s *GracefulServer) handleListenError(err error) {
+	s.log.Error(fmt.Sprintf("listen: %v", err))
+}
+
+func (s *GracefulServer) handleServeError(err error) {
+	s.log.Error(fmt.Sprintf("serve: %v", err))
 }
 
 func (s *GracefulServer) Shutdown(ctx context.Context) error {
