@@ -19,32 +19,65 @@ func NewTitsRepository(db *bun.DB) *TitsRepository {
 }
 
 func (t *TitsRepository) GetTits(ctx context.Context) ([]domain.Tits, error) {
-	titsModels := make([]titsModel, 0, 2)
-	err := t.db.NewSelect().
-		Model(&titsModels).
-		OrderExpr("random()").
-		Limit(2).
-		Scan(ctx)
+	titsModels, err := t.createTitsSlice()
 	if err != nil {
 		return nil, err
 	}
-	tits := titsModelsToDomain(titsModels)
+	err = t.executeQuery(ctx, &titsModels)
+	if err != nil {
+		return nil, err
+	}
+	tits := t.convertToDomain(titsModels)
 	return tits, nil
 }
 
+func (t *TitsRepository) createTitsSlice() ([]titsModel, error) {
+	return make([]titsModel, 0, 2), nil
+}
+
+func (t *TitsRepository) executeQuery(ctx context.Context, titsModels *[]titsModel) error {
+	return t.db.NewSelect().
+		Model(titsModels).
+		OrderExpr("random()").
+		Limit(2).
+		Scan(ctx)
+}
+
+func (t *TitsRepository) convertToDomain(titsModels []titsModel) []domain.Tits {
+	return titsModelsToDomain(titsModels)
+}
+
 func (t *TitsRepository) CreateTits(ctx context.Context, tits domain.Tits) error {
-	model := titsModel{}
-	model.FromDomain(tits)
-	_, err := t.db.NewInsert().
-		Model(&model).
-		Exec(ctx)
+	model, err := t.createModel(tits)
 	if err != nil {
 		return err
 	}
-	return nil
+	err = t.executeInsert(ctx, model)
+	return err
+}
+
+func (t *TitsRepository) createModel(tits domain.Tits) (*titsModel, error) {
+	model := &titsModel{}
+	model.FromDomain(tits)
+	return model, nil
+}
+
+func (t *TitsRepository) executeInsert(ctx context.Context, model *titsModel) error {
+	_, err := t.db.NewInsert().
+		Model(model).
+		Exec(ctx)
+	return err
 }
 
 func (t *TitsRepository) IncreaseRating(ctx context.Context, titsID string) (int64, error) {
+	rating, err := t.executeUpdate(ctx, titsID)
+	if err != nil {
+		return rating, err
+	}
+	return rating, nil
+}
+
+func (t *TitsRepository) executeUpdate(ctx context.Context, titsID string) (int64, error) {
 	var rating int64
 	err := t.db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bun.Tx) error {
 		_, err := tx.NewUpdate().
@@ -55,8 +88,5 @@ func (t *TitsRepository) IncreaseRating(ctx context.Context, titsID string) (int
 			Exec(ctx, &rating)
 		return err
 	})
-	if err != nil {
-		return rating, err
-	}
-	return rating, nil
+	return rating, err
 }
