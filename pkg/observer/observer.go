@@ -104,13 +104,34 @@ func (o *Observer) AddUpper(upper func(ctx context.Context)) {
 }
 
 func (o *Observer) Run() error {
+	err := o.openOpeners()
+	if err != nil {
+		return err
+	}
+
+	err = o.openContextOpeners()
+	if err != nil {
+		return err
+	}
+
+	o.runUppers()
+	o.wg.Wait()
+
+	err = o.stopObserver()
+	return err
+}
+
+func (o *Observer) openOpeners() error {
 	for _, opener := range o.openers {
 		err := opener.Open()
 		if err != nil {
 			return fmt.Errorf("open %#v: %v", opener, err)
 		}
 	}
+	return nil
+}
 
+func (o *Observer) openContextOpeners() error {
 	openCtx, cancel := context.WithTimeout(context.Background(), o.openTimeout)
 	defer cancel()
 
@@ -119,7 +140,10 @@ func (o *Observer) Run() error {
 			return fmt.Errorf("open with context %#v: %v", opener, err)
 		}
 	}
+	return nil
+}
 
+func (o *Observer) runUppers() {
 	for _, upper := range o.uppers {
 		o.wg.Add(1)
 		upper := upper
@@ -130,11 +154,10 @@ func (o *Observer) Run() error {
 			upper(o.ctx)
 		}()
 	}
-	o.wg.Wait()
+}
 
-	cancel()
-	err := o.stop()
-	return err
+func (o *Observer) stopObserver() error {
+	return o.stop()
 }
 
 func handleSignals(ctx context.Context) {
