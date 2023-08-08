@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc/grpclog"
 )
 
-func NewLogger(logger *zap.Logger, serviceName string) *otelzap.Logger {
+func CreateNewLogger(logger *zap.Logger, serviceName string) *otelzap.Logger {
 	log := otelzap.New(logger.Named(serviceName), otelzap.WithTraceIDField(true))
 	return log
 }
