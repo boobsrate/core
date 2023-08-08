@@ -83,10 +83,10 @@ func createServices(cfg *config.Config, logger *zap.Logger, rootRouter *mux.Rout
 		Creds:  credentials.NewStaticV4(cfg.Minio.AccessKey, cfg.Minio.SecretKey, ""),
 		Secure: cfg.Minio.UseSSL,
 	})
-	if err != nil {
-		appLogger.Error("creating minio client", zap.Error(err))
-		return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil
-	}
+ 	if err != nil {
+ 		appLogger.Error("creating minio client", zap.Error(err))
+ 		return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, err
+ 	}
 
 	minioStorage := minio2.NewMinioStorage(minioClient, cfg.Minio.Bucket, cfg.Images.PublicEndpoint)
 
@@ -141,9 +141,13 @@ func runObserver(tp *tracing.TracingProvider, wsHub *websockethub.WebsocketsHub,
 		return tp.Shutdown(ctx)
 	}))
 
-	obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
-		return httpRootServer.Shutdown(ctx)
-	}))
+ 	obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
+ 		return httpRootServer.Shutdown(ctx)
+ 	}))
+ 
+ 	obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
+ 		return httpMetricsServer.Shutdown(ctx)
+ 	}))
 
 	obs.AddUpper(func(ctx context.Context) {
 		wsHub.Run(ctx)
