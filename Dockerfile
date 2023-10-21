@@ -1,12 +1,12 @@
-FROM golang:1.19-alpine3.15 AS builder
+FROM golang:1.20-alpine3.15 AS builder
 RUN apk update && apk add --no-cache ca-certificates git gcc make libc-dev binutils-gold
 WORKDIR tits
 COPY . .
 RUN go mod tidy && go get -d -v
 
-RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -trimpath -o /bin/migrator ./cmd/migrate
-RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -trimpath -o /bin/initiator ./cmd/initiator
-RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -trimpath -o /bin/tits ./cmd/tits
+RUN CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -trimpath -o /bin/migrator ./cmd/migrate
+RUN CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -trimpath -o /bin/initiator ./cmd/initiator
+RUN CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -trimpath -o /bin/tits ./cmd/tits
 
 
 FROM scratch
