@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/boobsrate/core/internal/applications/initiator"
+	"github.com/boobsrate/core/internal/applications/parser"
 	"github.com/boobsrate/core/internal/repository/postgres"
 	"github.com/boobsrate/core/internal/services/tits"
 	storage "github.com/boobsrate/core/internal/storage/minio"
@@ -41,6 +41,6 @@ func main() {
 
 	tasksRepo := postgres.NewTasksRepository(pgDB)
 
-	initiatorApp := initiator.NewService(logger, titsService, tasksRepo)
-	initiatorApp.Run()
+	initiatorApp := parser.NewService(logger, titsService, tasksRepo, cfg.Proxy.ProxyEndpointAll)
+	initiatorApp.Run(cfg.Base.WithFill)
 }

@@ -8,7 +8,7 @@ ingress:
   className: "nginx"
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod-dns"
-    external-dns.alpha.kubernetes.io/hostname: "rate-tits.online"
+    external-dns.alpha.kubernetes.io/hostname: "boobsrate.akuzyashin.pw"
     nginx.ingress.kubernetes.io/server-snippets: |
       location /api/ws {
          proxy_set_header Upgrade $http_upgrade;
@@ -21,7 +21,7 @@ ingress:
          proxy_cache_bypass $http_upgrade;
        }
   hosts:
-    - host: rate-tits.online
+    - host: boobsrate.akuzyashin.pw
       paths:
         - path: /api/(.*)
           pathType: Prefix
@@ -38,4 +38,4 @@ ingress:
   tls:
     - secretName: tls-titsfrontend-dev
       hosts:
-        - rate-tits.online
+        - boobsrate.akuzyashin.pw

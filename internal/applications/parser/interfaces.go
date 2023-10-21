@@ -1,4 +1,4 @@
-package initiator
+package parser
 
 import (
 	"context"

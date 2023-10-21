@@ -13,37 +13,37 @@ image:
   pullPolicy: Always
   env:
     - name: MINIO_BUCKET
-      value: "boobsrate"
+      value: "tits"
     - name: TRACING_ENDPOINT
       value: "http://tempo.monitoring:14268/api/traces"
-    - name: CENTRIFUGE_GRPC_ENDPOINT
-      value: "centrifugo.centrifugo:10000"
+#    - name: CENTRIFUGE_GRPC_ENDPOINT
+#      value: "centrifugo.centrifugo:10000"
   envFromSecret:
     - name: MINIO_ACCESS_KEY
       valueFrom:
         secretKeyRef:
-          name: minio
-          key: access_key
+          name: boobsrate
+          key: MINIO_ACCESS_KEY
     - name: MINIO_SECRET_KEY
       valueFrom:
         secretKeyRef:
-          name: minio
-          key: secret_key
+          name: boobsrate
+          key: MINIO_SECRET_KEY
     - name: DATABASE_DSN
       valueFrom:
         secretKeyRef:
           name: boobsrate-db
           key: connection_dsn
-    - name: CENTRIFUGE_API_TOKEN
-      valueFrom:
-        secretKeyRef:
-          name: centrifuge
-          key: api_token
-    - name: CENTRIFUGE_SIGNING_KEY
-      valueFrom:
-        secretKeyRef:
-          name: centrifuge
-          key: signing_key
+#    - name: CENTRIFUGE_API_TOKEN
+#      valueFrom:
+#        secretKeyRef:
+#          name: centrifuge
+#          key: api_token
+#    - name: CENTRIFUGE_SIGNING_KEY
+#      valueFrom:
+#        secretKeyRef:
+#          name: centrifuge
+#          key: signing_key
 
 
 imagePullSecrets: [
@@ -107,7 +107,7 @@ resources:
     memory: 200Mi
 
 autoscaling:
-  enabled: true
+  enabled: false
   minReplicas: 1
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80

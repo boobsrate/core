@@ -1,4 +1,4 @@
-package initiator
+package parser
 
 import (
 	"bufio"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
@@ -16,13 +17,23 @@ import (
 )
 
 type Service struct {
-	log         *zap.Logger
-	titsService TitsService
-	taskService TaskRepo
-	httpClient  *http.Client
+	log             *zap.Logger
+	titsService     TitsService
+	taskService     TaskRepo
+	httpClient      *http.Client
+	httpProxyClient *http.Client
 }
 
-func NewService(log *zap.Logger, titsService TitsService, taskService TaskRepo) *Service {
+func NewService(log *zap.Logger, titsService TitsService, taskService TaskRepo, proxyUrl string) *Service {
+	proxyTransport := &http.Transport{
+		TLSHandshakeTimeout: 10 * time.Second,
+	}
+
+	parsedProxyUrl, err := url.Parse(proxyUrl)
+	if err == nil {
+		proxyTransport.Proxy = http.ProxyURL(parsedProxyUrl)
+	}
+
 	return &Service{
 		log:         log.Named("initiator"),
 		titsService: titsService,
@@ -30,13 +41,26 @@ func NewService(log *zap.Logger, titsService TitsService, taskService TaskRepo) 
 		httpClient: &http.Client{
 			Timeout: time.Second * 10,
 		},
+		httpProxyClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: proxyTransport,
+		},
 	}
 }
 
-func (s *Service) Run() {
+func (s *Service) Run(withFill bool) {
 	s.log.Info("Tits downloader started")
 	defer s.log.Info("Tits downloader stopped")
+
+	s.run(withFill)
+}
+
+func (s *Service) run(withFill bool) {
 	ctx := context.Background()
+
+	if withFill {
+		s.runFillFormFiles()
+	}
 
 	totalTasks, err := s.taskService.GetCountUnprocessedTasks(ctx)
 	if err != nil {
@@ -62,7 +86,7 @@ func (s *Service) Run() {
 	wg.Wait()
 }
 
-func (s *Service) RunFill() {
+func (s *Service) runFillFormFiles() {
 	s.log.Info("Tits uploader started")
 	defer s.log.Info("Tits uploader stopped")
 	ctx := context.Background()
@@ -78,26 +102,26 @@ func (s *Service) RunFill() {
 
 		file, err := os.Open(path)
 		if err != nil {
-			fmt.Printf("Error opening file %s: %v\n", path, err)
+			s.log.Error("open file", zap.Error(err))
 			return err
 		}
 		defer file.Close()
 
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
-			url := scanner.Text()
-			allUrls = append(allUrls, url)
+			uri := scanner.Text()
+			allUrls = append(allUrls, uri)
 		}
 
 		if err := scanner.Err(); err != nil {
-			fmt.Printf("Error scanning file %s: %v\n", path, err)
+			s.log.Error("scan file", zap.Error(err))
 			return err
 		}
 
 		return nil
 	})
 	if err != nil {
-		fmt.Printf("Error walking directory assets/urls/: %v\n", err)
+		s.log.Error("walking directory assets/urls/", zap.Error(err))
 		os.Exit(1)
 	}
 
@@ -109,7 +133,7 @@ func (s *Service) RunFill() {
 
 	for idx := range allUrls {
 		// create tasks in batches of 2000
-		if len(tasks) == 2000 {
+		if len(tasks) >= 2000 {
 			err := s.taskService.CreateTask(ctx, tasks)
 			if err != nil {
 				s.log.Error("create task: ", zap.Error(err))
@@ -125,12 +149,12 @@ func (s *Service) RunFill() {
 				Status:    "",
 			})
 		}
-
-		//guard <- struct{}{}
-		//wg.Add(1)
-		//go s.work(ctx, wg, guard, idx, allUrls[idx], totalFiles)
 	}
-	//wg.Wait()
+
+	err = s.taskService.CreateTask(ctx, tasks)
+	if err != nil {
+		s.log.Error("create task: ", zap.Error(err))
+	}
 }
 
 func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struct{}, idx int, url string, totalFiles int, task domain.Task) {
@@ -142,10 +166,23 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 		zap.Int("total", totalFiles),
 	)
 
-	res, err := s.httpClient.Get(url)
+	var res *http.Response
+	var err error
+
+	if task.NeedRetry {
+		res, err = s.httpProxyClient.Get(url)
+	} else {
+		res, err = s.httpClient.Get(url)
+	}
+
 	if err != nil {
-		fmt.Printf("Error downloading image from URL %s: %v\n", url, err)
-		task.Processed = true
+		s.log.Error("downloading image from URL", zap.Error(err), zap.String("url", url))
+		if !task.NeedRetry {
+			task.NeedRetry = true
+		} else {
+			task.Processed = true
+			task.Error = err.Error()
+		}
 		_ = s.taskService.UpdateTask(context.Background(), task)
 		cancel()
 		wg.Done()
@@ -154,8 +191,13 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 	}
 
 	if res.StatusCode != 200 {
-		fmt.Printf("Error downloading image from URL %s: Status code: %d\n", url, res.StatusCode)
-		task.Processed = true
+		s.log.Error("downloading image from URL", zap.Error(err), zap.String("url", url), zap.Int("status", res.StatusCode))
+		if !task.NeedRetry {
+			task.NeedRetry = true
+		} else {
+			task.Processed = true
+			task.Error = err.Error()
+		}
 		_ = s.taskService.UpdateTask(context.Background(), task)
 		cancel()
 		wg.Done()
@@ -165,7 +207,12 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
-		task.Processed = true
+		if !task.NeedRetry {
+			task.NeedRetry = true
+		} else {
+			task.Processed = true
+			task.Error = err.Error()
+		}
 		_ = s.taskService.UpdateTask(context.Background(), task)
 		cancel()
 		wg.Done()
@@ -176,6 +223,7 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 	// If 'b' size less than 700kb, return
 	if len(b) < 600*1024 {
 		task.Processed = true
+		task.Error = "image size less than 600kb"
 		_ = s.taskService.UpdateTask(context.Background(), task)
 		cancel()
 		wg.Done()
