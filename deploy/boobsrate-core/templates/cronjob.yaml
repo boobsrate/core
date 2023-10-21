@@ -9,12 +9,8 @@ spec:
     spec:
       template:
         spec:
-          {{- if .Values.imagePullSecrets }}
-            imagePullSecrets:
-                {{- range .Values.imagePullSecrets }}
-                - name: {{ . }}
-                {{- end }}
-            {{- end }}
+          imagePullSecrets:
+            - name: dockerconfigjson-github-com
           containers:
             - name: {{ .Chart.Name }}-downloader
               image: "{{ .Values.image.name }}"
