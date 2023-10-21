@@ -1,9 +1,9 @@
 image:
   env:
     - name: MINIO_BUCKET
-      value: "boobsrate-dev"
+      value: "tits"
     - name: TRACER_NAME
-      value: "tits-dev"
+      value: "tits"
     - name: ENV
       value: "dev"
 
