@@ -46,17 +46,22 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Upload tags as an artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: docker-tags
+          name: docker-tags-${{ steps.extract_branch.outputs.branch }}
           path: ${{ steps.meta.outputs.tags }}
+          retention-days: 1
   deploy:
     runs-on: [ "self-hosted" ]
     steps:
+      - name: Extract branch name
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
       - name: Download docker-tags artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
-          name: docker-tags
+          name: docker-tags-${{ steps.extract_branch.outputs.branch }}
           path: ./docker-tags
 
       - name: Form values file
@@ -87,8 +92,3 @@ jobs:
             --set image.name=$(cat ./docker-tags) \
             --timeout 5m0s \
             --debug
-
-      - name: Delete docker-tags artifact
-        uses: actions/delete-artifact@v2
-        with:
-          name: docker-tags
