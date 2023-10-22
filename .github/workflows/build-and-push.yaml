@@ -45,6 +45,20 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+      - name: Upload tags as an artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: docker-tags
+          path: ${{ steps.meta.outputs.tags }}
+  deploy:
+    runs-on: [ "self-hosted" ]
+    steps:
+      - name: Download docker-tags artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-tags
+          path: ./docker-tags
+
       - name: Form values file
         id: form_values_file
         uses: haya14busa/action-cond@v1
@@ -70,6 +84,11 @@ jobs:
             --install \
             -f ./deploy/boobsrate-core/${{steps.form_values_file.outputs.value}} \
             -n ${{steps.form_namespace.outputs.value}} \
-            --set image.name=${{ steps.meta.outputs.tags }} \
+            --set image.name=$(cat ./docker-tags) \
             --timeout 5m0s \
             --debug
+
+      - name: Delete docker-tags artifact
+        uses: actions/delete-artifact@v2
+        with:
+          name: docker-tags
