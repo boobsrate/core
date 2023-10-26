@@ -196,7 +196,7 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 			task.NeedRetry = true
 		} else {
 			task.Processed = true
-			task.Error = err.Error()
+			task.Error = fmt.Sprintf("Status code = %d", res.StatusCode)
 		}
 		_ = s.taskService.UpdateTask(context.Background(), task)
 		cancel()
