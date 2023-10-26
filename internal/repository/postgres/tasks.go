@@ -15,6 +15,8 @@ type tasksModel struct {
 	Processed bool      `bun:"processed"`
 	Url       string    `bun:"url"`
 	Status    string    `bun:"status"`
+	NeedRetry bool      `bun:"need_retry"`
+	Error     string    `bun:"error"`
 }
 
 func (t *tasksModel) FromDomain(task domain.Task) {
@@ -23,6 +25,8 @@ func (t *tasksModel) FromDomain(task domain.Task) {
 	t.CreatedAt = task.CreatedAt
 	t.Url = task.Url
 	t.Status = task.Status
+	t.NeedRetry = task.NeedRetry
+	t.Error = task.Error
 }
 
 func TaskModelToDomain(model tasksModel) domain.Task {
@@ -32,6 +36,8 @@ func TaskModelToDomain(model tasksModel) domain.Task {
 		Processed: model.Processed,
 		Url:       model.Url,
 		Status:    model.Status,
+		NeedRetry: model.NeedRetry,
+		Error:     model.Error,
 	}
 }
 
