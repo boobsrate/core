@@ -15,7 +15,7 @@ image:
     - name: MINIO_BUCKET
       value: "tits"
     - name: TRACING_ENDPOINT
-      value: "http://tempo.monitoring:14268/api/traces"
+      value: "http://tempo-distributor.mimir.svc.cluster.local:14268/api/traces"
 #    - name: CENTRIFUGE_GRPC_ENDPOINT
 #      value: "centrifugo.centrifugo:10000"
   envFromSecret:
