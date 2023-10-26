@@ -9,7 +9,7 @@ image:
   name: ghcr.io/boobsrate/core:latest
   command: /bin/tits
   migrate_command: /bin/migrator
-  init_command: /bin/initiator
+  init_command: /bin/parser
   pullPolicy: Always
   env:
     - name: MINIO_BUCKET
