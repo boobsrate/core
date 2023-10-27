@@ -107,7 +107,7 @@ func (t *TitsRepository) GetTitsWithReportsThreshold(ctx context.Context, report
 	err := t.db.NewSelect().
 		Model(&titsModels).
 		Where("COALESCE(abyss, FALSE) = ?", false).
-		Join("LEFT JOIN reports ON reports.tits_id = tits.id").
+		Join("JOIN reports ON reports.tits_id = tits.id").
 		Group("tits.id").
 		Having("COUNT(tits.id) >= ?", reportsThreshold).
 		Scan(ctx)
