@@ -29,6 +29,16 @@ image:
         secretKeyRef:
           name: boobsrate
           key: MINIO_SECRET_KEY
+    - name: CENTRIFUGE_API_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: boobsrate
+          key: CENTRIFUGE_API_TOKEN
+    - name: CENTRIFUGE_SIGNING_KEY
+      valueFrom:
+        secretKeyRef:
+          name: boobsrate
+          key: CENTRIFUGE_SIGNING_KEY
     - name: DATABASE_DSN
       valueFrom:
         secretKeyRef:
