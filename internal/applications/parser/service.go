@@ -220,10 +220,10 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 	}
 	_ = res.Body.Close()
 
-	// If 'b' size less than 700kb, return
-	if len(b) < 600*1024 {
+	// If 'b' size less than 400kb, return
+	if len(b) < 400*1024 {
 		task.Processed = true
-		task.Error = "image size less than 600kb"
+		task.Error = "image size less than 400kb"
 		_ = s.taskService.UpdateTask(context.Background(), task)
 		cancel()
 		wg.Done()
