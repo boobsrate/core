@@ -42,8 +42,6 @@ issues:
     - \`criterias` is a misspelling of `criteria`
     - var `type_` should be `type`
   exclude-rules:
-    - path: internal/postgres
-      text: \`tableName\` is unused
     - path: _test\.go
       linters:
         - goconst
@@ -65,10 +63,6 @@ issues:
         - gocritic
       text: "^exitAfterDefer" # e.g. 'log.Fatal clutters defer ...'
     # This linter doesn't work well with blank imports. See: https://github.com/daixiang0/gci/issues/6
-    - linters:
-        - interfacer
-      path: internal/grpcapi
-      text: "can be `google.golang.org/grpc.ServiceRegistrar`"
     - linters:
         - unparam
       text: .* (\(error\)|`err`) is always (nil|`nil`)

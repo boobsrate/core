@@ -9,7 +9,7 @@ import (
 )
 
 type LoggingMiddleware struct {
-	logger *otelzap.Logger
+	logger *zap.Logger
 }
 
 func NewLoggingMiddleware(logger *zap.Logger) *LoggingMiddleware {
@@ -30,6 +30,7 @@ func (a *LoggingMiddleware) Handle(next http.Handler) http.Handler {
 			zap.String("user-agent", r.UserAgent()),
 			zap.String("referer", r.Referer()),
 			zap.String("forwarded", r.Header.Get("X-Forwarded-For")),
+			zap.String("trace-id", r.Header.Get("X-Uber-Trace-Id")),
 		)
 		next.ServeHTTP(w, r)
 	})

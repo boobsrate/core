@@ -40,7 +40,7 @@ func main() {
 	}
 
 	err = m.Up()
-	if err != nil {
+	if err != nil && err != migrate.ErrNoChange {
 		logger.Fatal("migrate up: ", zap.Error(err))
 	}
 }

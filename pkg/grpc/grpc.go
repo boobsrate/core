@@ -53,7 +53,7 @@ func NewGrpcServer(services []Server) *grpc.Server {
 	return srv
 }
 
-func NewGrpcClient(addr string) (*grpc.ClientConn, error) {
+func NewGrpcClient(addr string, dialOpts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	unaryInterceptors := []grpc.UnaryClientInterceptor{
 		grpc_prometheus.UnaryClientInterceptor,
 		otelgrpc.UnaryClientInterceptor(),
@@ -65,6 +65,8 @@ func NewGrpcClient(addr string) (*grpc.ClientConn, error) {
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
 		grpc.WithChainUnaryInterceptor(unaryInterceptors...),
 	}
+
+	opts = append(opts, dialOpts...)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultClientDialTimeout)
 	defer cancel()

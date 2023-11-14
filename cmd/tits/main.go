@@ -1,6 +1,8 @@
 package main
 
-import "github.com/boobsrate/core/internal/applications/tits"
+import (
+	"github.com/boobsrate/core/internal/entrypoint/tits"
+)
 
 func main() {
 	err := tits.Run()

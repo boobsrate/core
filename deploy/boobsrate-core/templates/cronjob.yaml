@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "boobsrate-core.fullname" . }}-downloader-{{ randAlphaNum 6 | lower }}
+spec:
+  schedule: "*/30 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          imagePullSecrets:
+            - name: dockerconfigjson-github-com
+          containers:
+            - name: {{ .Chart.Name }}-downloader
+              image: "{{ .Values.image.name }}"
+            {{- if .Values.image.env }}
+              env:
+                {{- range .Values.image.env }}
+                - name: {{ .name }}
+                  value: {{ .value | quote }}
+                {{- end }}
+              {{- end }}
+              {{- if .Values.image.envFromSecret }}
+              {{- range .Values.image.envFromSecret }}
+                - name: {{.name | quote }}
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .valueFrom.secretKeyRef.name }}
+                      key: {{ .valueFrom.secretKeyRef.key }}
+                {{- end }}
+              {{- end }}
+              imagePullPolicy: Always
+              command: [ {{ .Values.image.init_command }} ]
+          restartPolicy: Never
