@@ -23,7 +23,7 @@ type ProxyConfig struct {
 }
 
 type ImagesConfig struct {
-	OptimizerEndpoint string `env:"IMAGES_OPTIMIZER_ENDPOINT" envDefault:"https://img.optimizer.akuzyashin.pw"`
+	OptimizerEndpoint string `env:"IMAGES_OPTIMIZER_ENDPOINT" envDefault:"http://image-optimizer.image-optimizer:3000"`
 }
 
 type MinioConfig struct {
