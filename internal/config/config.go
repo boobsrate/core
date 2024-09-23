@@ -36,7 +36,7 @@ type ImagesConfig struct {
 }
 
 type MinioConfig struct {
-	Endpoint  string `env:"MINIO_ENDPOINT" envDefault:"minio.storage:9000"`
+	Endpoint  string `env:"MINIO_ENDPOINT" envDefault:"minio.minio:9000"`
 	AccessKey string `env:"MINIO_ACCESS_KEY" envDefault:""`
 	SecretKey string `env:"MINIO_SECRET_KEY" envDefault:""`
 	Bucket    string `env:"MINIO_BUCKET" envDefault:"tits"`
