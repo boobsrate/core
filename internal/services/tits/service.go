@@ -34,7 +34,7 @@ func NewService(db Database, storage Storage, log *zap.Logger, wsChannel chan do
 	}
 }
 
-func (s *Service) getWebpImage(ctx context.Context, filename string) ([]byte, error) {
+func (s *Service) getWebpImage(ctx context.Context, filename, url string) ([]byte, error) {
 	httpClient := http.Client{}
 	filenameSplitted := strings.Split(filename, ".")
 	fileUrl := s.storage.GetImageUrl(filenameSplitted[0])
@@ -46,7 +46,20 @@ func (s *Service) getWebpImage(ctx context.Context, filename string) ([]byte, er
 	req = req.WithContext(ctx)
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		s.log.Error("Get image from minio to optimize")
+		if url == "" {
+			return nil, err
+		}
+		requestURL = fmt.Sprintf("%s/optimize?size=350&format=webp&src=%s", s.optimizerURL, url)
+		req, err = http.NewRequest("GET", requestURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		req = req.WithContext(ctx)
+		resp, err = httpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
 	}
 	defer resp.Body.Close()
 	return ioutil.ReadAll(resp.Body)
@@ -62,7 +75,7 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 		return err
 	}
 
-	webpImage, err := s.getWebpImage(ctx, filename)
+	webpImage, err := s.getWebpImage(ctx, filename, "")
 	if err != nil {
 		s.log.Error("get webp image:", zap.Error(err))
 		return err
@@ -87,7 +100,7 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 	return nil
 }
 
-func (s *Service) CreateTitsFromBytes(ctx context.Context, filename string, file []byte) error {
+func (s *Service) CreateTitsFromBytes(ctx context.Context, filename string, file []byte, url string) error {
 	ctx, cancel := context.WithTimeout(ctx, defaultTitsCreateTimeout)
 	defer cancel()
 
@@ -97,7 +110,7 @@ func (s *Service) CreateTitsFromBytes(ctx context.Context, filename string, file
 		return err
 	}
 
-	webpImage, err := s.getWebpImage(ctx, filename)
+	webpImage, err := s.getWebpImage(ctx, filename, url)
 	if err != nil {
 		s.log.Error("get webp image:", zap.Error(err))
 		return err

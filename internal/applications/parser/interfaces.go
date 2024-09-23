@@ -8,7 +8,7 @@ import (
 
 type TitsService interface {
 	CreateTitsFromFile(ctx context.Context, filename, filePath string) error
-	CreateTitsFromBytes(ctx context.Context, filename string, file []byte) error
+	CreateTitsFromBytes(ctx context.Context, filename string, file []byte, url string) error
 }
 
 type TaskRepo interface {

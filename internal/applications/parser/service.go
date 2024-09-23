@@ -26,7 +26,7 @@ type Service struct {
 
 func NewService(log *zap.Logger, titsService TitsService, taskService TaskRepo, proxyUrl string) *Service {
 	proxyTransport := &http.Transport{
-		TLSHandshakeTimeout: 10 * time.Second,
+		TLSHandshakeTimeout: 30 * time.Second,
 	}
 
 	parsedProxyUrl, err := url.Parse(proxyUrl)
@@ -39,10 +39,10 @@ func NewService(log *zap.Logger, titsService TitsService, taskService TaskRepo, 
 		titsService: titsService,
 		taskService: taskService,
 		httpClient: &http.Client{
-			Timeout: time.Second * 10,
+			Timeout: time.Second * 30,
 		},
 		httpProxyClient: &http.Client{
-			Timeout:   time.Second * 30,
+			Timeout:   time.Second * 60,
 			Transport: proxyTransport,
 		},
 	}
@@ -231,7 +231,7 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 		return
 	}
 
-	err = s.titsService.CreateTitsFromBytes(ctx, fmt.Sprintf("%s.jpg", task.ID), b)
+	err = s.titsService.CreateTitsFromBytes(ctx, fmt.Sprintf("%s.jpg", task.ID), b, url)
 	if err != nil {
 		s.log.Error("Failed to create tits",
 			zap.String("url", url),
