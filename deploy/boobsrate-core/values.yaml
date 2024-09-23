@@ -13,7 +13,7 @@ image:
   pullPolicy: Always
   env:
     - name: MINIO_BUCKET
-      value: "tits"
+      value: "boobsrate"
     - name: TRACING_ENDPOINT
       value: "http://tempo-distributor.mimir.svc.cluster.local:14268/api/traces"
     - name: CENTRIFUGE_GRPC_ENDPOINT
