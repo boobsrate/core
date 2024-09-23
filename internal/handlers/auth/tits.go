@@ -56,7 +56,7 @@ func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
 		Name:    "boobs_session",
 		Value:   strconv.Itoa(payload.ID),
 		Expires: expiration,
-		Domain:  "dev.rate-tits.akuzyashin.pw",
+		Domain:  "dev.boobsrate.ru",
 		Path:    "/",
 	}
 	http.SetCookie(w, &cookie)

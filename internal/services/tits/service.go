@@ -38,7 +38,7 @@ func (s *Service) getWebpImage(ctx context.Context, filename string) ([]byte, er
 	httpClient := http.Client{}
 	filenameSplitted := strings.Split(filename, ".")
 	fileUrl := s.storage.GetImageUrl(filenameSplitted[0])
-	requestURL := fmt.Sprintf("%s/optimize?size=350&format=webp&src=https://s3.boobsrate.akuzyashin.pw%s.jpg", s.optimizerURL, fileUrl)
+	requestURL := fmt.Sprintf("%s/optimize?size=350&format=webp&src=https://s3.boobsrate.ru%s.jpg", s.optimizerURL, fileUrl)
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
 		return nil, err

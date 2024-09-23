@@ -22,22 +22,22 @@ image:
     - name: MINIO_ACCESS_KEY
       valueFrom:
         secretKeyRef:
-          name: boobsrate
+          name: boobsrate-s3
           key: MINIO_ACCESS_KEY
     - name: MINIO_SECRET_KEY
       valueFrom:
         secretKeyRef:
-          name: boobsrate
+          name: boobsrate-s3
           key: MINIO_SECRET_KEY
     - name: CENTRIFUGE_API_TOKEN
       valueFrom:
         secretKeyRef:
-          name: boobsrate
+          name: boobsrate-centrifuge
           key: CENTRIFUGE_API_TOKEN
     - name: CENTRIFUGE_SIGNING_KEY
       valueFrom:
         secretKeyRef:
-          name: boobsrate
+          name: boobsrate-centrifuge
           key: CENTRIFUGE_SIGNING_KEY
     - name: DATABASE_DSN
       valueFrom:

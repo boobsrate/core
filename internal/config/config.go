@@ -31,7 +31,7 @@ type ServerConfiguration struct {
 }
 
 type ImagesConfig struct {
-	PublicEndpoint    string `env:"IMAGES_PUBLIC_ENDPOINT" envDefault:"https://s3.akuzyashin.pw"`
+	PublicEndpoint    string `env:"IMAGES_PUBLIC_ENDPOINT" envDefault:"https://s3.boobsrate.ru"`
 	OptimizerEndpoint string `env:"IMAGES_OPTIMIZER_ENDPOINT" envDefault:"https://img.optimizer.akuzyashin.pw/"`
 }
 
