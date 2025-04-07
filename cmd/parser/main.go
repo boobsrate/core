@@ -46,6 +46,6 @@ func main() {
 	detectionCli := detection.NewClient(cfg.Detection.BaseUrl)
 	detectionSvc := detector.NewService(logger.Named("detector"), detectionCli)
 
-	initiatorApp := parser.NewService(logger, titsService, tasksRepo, detectionSvc, cfg.Detection, cfg.Proxy.ProxyEndpointAll)
+	initiatorApp := parser.NewService(logger, titsService, tasksRepo, detectionSvc, cfg.Proxy.ProxyEndpointAll)
 	initiatorApp.Run(cfg.Base.WithFill)
 }
