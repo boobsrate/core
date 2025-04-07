@@ -6,11 +6,12 @@ import (
 
 // Configuration represents application configuration for serve action.
 type Configuration struct {
-	Base     BaseConfig
-	Database DatabaseConfig
-	Minio    MinioConfig
-	Images   ImagesConfig
-	Proxy    ProxyConfig
+	Base      BaseConfig
+	Database  DatabaseConfig
+	Minio     MinioConfig
+	Images    ImagesConfig
+	Proxy     ProxyConfig
+	Detection DetectionConfig
 }
 
 type BaseConfig struct {
@@ -36,6 +37,10 @@ type MinioConfig struct {
 
 type DatabaseConfig struct {
 	DatabaseDSN string `env:"DATABASE_DSN"`
+}
+
+type DetectionConfig struct {
+	BaseUrl string `env:"DETECTION_BASE_URL" envDefault:"http://nsfw-detector-nude-detector.nude-detector:80"`
 }
 
 // LoadConfiguration returns a new application configuration parsed from environment variables.

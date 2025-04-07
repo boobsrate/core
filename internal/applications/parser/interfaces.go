@@ -6,6 +6,10 @@ import (
 	"github.com/boobsrate/core/internal/domain"
 )
 
+type DetectorService interface {
+	Detect(ctx context.Context, url string) (domain.DetectionResult, error)
+}
+
 type TitsService interface {
 	CreateTitsFromFile(ctx context.Context, filename, filePath string) error
 	CreateTitsFromBytes(ctx context.Context, filename string, file []byte, url string) error

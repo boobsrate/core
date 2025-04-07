@@ -5,7 +5,9 @@ import (
 	"log"
 
 	"github.com/boobsrate/core/internal/applications/parser"
+	"github.com/boobsrate/core/internal/clients/detection"
 	"github.com/boobsrate/core/internal/repository/postgres"
+	"github.com/boobsrate/core/internal/services/detector"
 	"github.com/boobsrate/core/internal/services/tits"
 	storage "github.com/boobsrate/core/internal/storage/minio"
 	"github.com/minio/minio-go/v7"
@@ -41,6 +43,9 @@ func main() {
 
 	tasksRepo := postgres.NewTasksRepository(pgDB)
 
-	initiatorApp := parser.NewService(logger, titsService, tasksRepo, cfg.Proxy.ProxyEndpointAll)
+	detectionCli := detection.NewClient(cfg.Detection.BaseUrl)
+	detectionSvc := detector.NewService(logger.Named("detector"), detectionCli)
+
+	initiatorApp := parser.NewService(logger, titsService, tasksRepo, detectionSvc, cfg.Detection, cfg.Proxy.ProxyEndpointAll)
 	initiatorApp.Run(cfg.Base.WithFill)
 }

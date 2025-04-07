@@ -17,14 +17,21 @@ import (
 )
 
 type Service struct {
-	log             *zap.Logger
-	titsService     TitsService
-	taskService     TaskRepo
-	httpClient      *http.Client
-	httpProxyClient *http.Client
+	log              *zap.Logger
+	titsService      TitsService
+	taskService      TaskRepo
+	detectionService DetectorService
+	httpClient       *http.Client
+	httpProxyClient  *http.Client
 }
 
-func NewService(log *zap.Logger, titsService TitsService, taskService TaskRepo, proxyUrl string) *Service {
+func NewService(
+	log *zap.Logger,
+	titsService TitsService,
+	taskService TaskRepo,
+	detectionService DetectorService,
+	proxyUrl string,
+) *Service {
 	proxyTransport := &http.Transport{
 		TLSHandshakeTimeout: 30 * time.Second,
 	}
@@ -35,9 +42,10 @@ func NewService(log *zap.Logger, titsService TitsService, taskService TaskRepo, 
 	}
 
 	return &Service{
-		log:         log.Named("initiator"),
-		titsService: titsService,
-		taskService: taskService,
+		log:              log.Named("initiator"),
+		titsService:      titsService,
+		taskService:      taskService,
+		detectionService: detectionService,
 		httpClient: &http.Client{
 			Timeout: time.Second * 30,
 		},
@@ -168,6 +176,59 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 
 	var res *http.Response
 	var err error
+
+	detectionResult, err := s.detectionService.Detect(ctx, url)
+	if err != nil {
+		s.log.Error("Failed to detect content",
+			zap.String("url", url),
+			zap.Int("index", idx),
+			zap.Int("total", totalFiles),
+			zap.Error(err),
+		)
+	}
+
+	var detectionThresholds = map[domain.DetectionClass]float64{
+		domain.DetectionClassFemaleGenitaliaCovered: 0.3,
+		domain.DetectionClassFemaleGenitaliaExposed: 0.3,
+		domain.DetectionClassMaleBreastExposed:      0.3,
+		domain.DetectionClassAnusExposed:            0.3,
+		domain.DetectionClassFaceMale:               0.3,
+		domain.DetectionClassMaleGenitaliaExposed:   0.3,
+		domain.DetectionClassAnusCovered:            0.3,
+	}
+
+	if len(detectionResult.Detections) == 0 {
+		for _, detection := range detectionResult.Detections {
+			if threshold, ok := detectionThresholds[detection.Class]; ok {
+				if detection.Score > threshold {
+					s.log.Info("Detection score is above threshold",
+						zap.String("url", url),
+						zap.Int("index", idx),
+						zap.Int("total", totalFiles),
+						zap.String("detection_class", string(detection.Class)),
+						zap.Float64("score", detection.Score),
+					)
+					task.NeedRetry = false
+					task.DetectionResult = detectionResult
+					task.Processed = true
+					task.Error = fmt.Sprintf("Detection score is above threshold: %s > %f", detection.Class, threshold)
+					_ = s.taskService.UpdateTask(context.Background(), task)
+					cancel()
+					wg.Done()
+					<-guard
+					return
+				}
+			} else {
+				s.log.Info("Detection class not in thresholds",
+					zap.String("url", url),
+					zap.Int("index", idx),
+					zap.Int("total", totalFiles),
+					zap.String("detection_class", string(detection.Class)),
+					zap.Float64("score", detection.Score),
+				)
+			}
+		}
+	}
 
 	if task.NeedRetry {
 		res, err = s.httpProxyClient.Get(url)
