@@ -185,19 +185,42 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 			zap.Int("total", totalFiles),
 			zap.Error(err),
 		)
+		if task.NeedRetry {
+			s.log.Info("Detection failed, retrying",
+				zap.String("url", url),
+				zap.Int("index", idx),
+				zap.Int("total", totalFiles),
+			)
+		} else {
+			task.NeedRetry = true
+			s.log.Info("Detection failed, not retrying",
+				zap.String("url", url),
+				zap.Int("index", idx),
+				zap.Int("total", totalFiles),
+			)
+		}
+		task.Processed = false
+		task.Error = err.Error()
+		_ = s.taskService.UpdateTask(context.Background(), task)
+		cancel()
+		wg.Done()
+		<-guard
+		return
 	}
 
 	var detectionThresholds = map[domain.DetectionClass]float64{
-		domain.DetectionClassFemaleGenitaliaCovered: 0.3,
+		domain.DetectionClassFemaleGenitaliaCovered: 0.5,
 		domain.DetectionClassFemaleGenitaliaExposed: 0.3,
 		domain.DetectionClassMaleBreastExposed:      0.3,
 		domain.DetectionClassAnusExposed:            0.3,
 		domain.DetectionClassFaceMale:               0.3,
 		domain.DetectionClassMaleGenitaliaExposed:   0.3,
-		domain.DetectionClassAnusCovered:            0.3,
+		domain.DetectionClassAnusCovered:            0.5,
 	}
 
-	if len(detectionResult.Detections) == 0 {
+	task.DetectionResult = detectionResult
+
+	if len(detectionResult.Detections) > 0 {
 		for _, detection := range detectionResult.Detections {
 			if threshold, ok := detectionThresholds[detection.Class]; ok {
 				if detection.Score > threshold {
@@ -282,7 +305,7 @@ func (s *Service) work(ctx context.Context, wg *sync.WaitGroup, guard chan struc
 	_ = res.Body.Close()
 
 	// If 'b' size less than 400kb, return
-	if len(b) < 400*1024 {
+	if len(b) < 200*1024 {
 		task.Processed = true
 		task.Error = "image size less than 400kb"
 		_ = s.taskService.UpdateTask(context.Background(), task)
