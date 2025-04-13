@@ -5,12 +5,24 @@ import (
 )
 
 type Configuration struct {
-	Server   ServerConfiguration
-	Database DatabaseConfig
-	Tracing  TracingConfig
-	Metrics  MetricsConfig
-	Minio    MinioConfig
-	Images   ImagesConfig
+	Base       BaseConfig
+	Centrifuge CentrifugeConfiguration
+	Server     ServerConfiguration
+	Database   DatabaseConfig
+	Tracing    TracingConfig
+	Metrics    MetricsConfig
+	Minio      MinioConfig
+	Images     ImagesConfig
+}
+
+type BaseConfig struct {
+	Env string `env:"ENV" envDefault:"dev"`
+}
+
+type CentrifugeConfiguration struct {
+	GRPCAddress string `env:"CENTRIFUGE_GRPC_ADDRESS" envDefault:"centrifugo.centrifugo:10000"`
+	ApiToken    string `env:"CENTRIFUGE_API_TOKEN"`
+	SigningKey  string `env:"CENTRIFUGE_SIGNING_KEY"`
 }
 
 type ServerConfiguration struct {
@@ -20,15 +32,15 @@ type ServerConfiguration struct {
 
 type ImagesConfig struct {
 	PublicEndpoint    string `env:"IMAGES_PUBLIC_ENDPOINT" envDefault:"https://s3.boobsrate.com"`
-	OptimizerEndpoint string `env:"IMAGES_OPTIMIZER_ENDPOINT" envDefault:"http://image-optimizer.images:3000"`
+	OptimizerEndpoint string `env:"IMAGES_OPTIMIZER_ENDPOINT" envDefault:"https://img.optimizer.awkr.ru/"`
 }
 
 type MinioConfig struct {
-	Endpoint  string `env:"MINIO_ENDPOINT" envDefault:"minio.images:9000"`
+	Endpoint  string `env:"MINIO_ENDPOINT" envDefault:"minio.minio:9000"`
 	AccessKey string `env:"MINIO_ACCESS_KEY" envDefault:""`
 	SecretKey string `env:"MINIO_SECRET_KEY" envDefault:""`
 	Bucket    string `env:"MINIO_BUCKET" envDefault:"tits"`
-	UseSSL    bool   `env:"MINIO_USE_SSL" envDefault:"true"`
+	UseSSL    bool   `env:"MINIO_USE_SSL" envDefault:"false"`
 }
 
 type MetricsConfig struct {
@@ -40,7 +52,7 @@ type DatabaseConfig struct {
 }
 
 type TracingConfig struct {
-	ProviderEndpoint string `env:"TRACING_ENDPOINT" required:"true" envDefault:"http://tempo.monitoring:14268/api/traces"`
+	ProviderEndpoint string `env:"TRACING_ENDPOINT" required:"true" envDefault:"http://tempo-distributor.mimir.svc.cluster.local:14268/api/traces"`
 	TracerName       string `env:"TRACING_TRACER_NAME" required:"true" envDefault:"tits"`
 }
 

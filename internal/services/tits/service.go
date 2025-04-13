@@ -9,11 +9,10 @@ import (
 	"time"
 
 	"github.com/boobsrate/core/internal/domain"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
 )
 
-const defaultTitsCreateTimeout = time.Second * 10
+const defaultTitsCreateTimeout = time.Second * 60
 
 type Service struct {
 	db           Database
@@ -22,7 +21,7 @@ type Service struct {
 
 	wsChannel chan domain.WSMessage
 
-	log *otelzap.Logger
+	log *zap.Logger
 }
 
 func NewService(db Database, storage Storage, log *zap.Logger, wsChannel chan domain.WSMessage, optimizerURL string) *Service {
@@ -31,13 +30,15 @@ func NewService(db Database, storage Storage, log *zap.Logger, wsChannel chan do
 		storage:      storage,
 		wsChannel:    wsChannel,
 		optimizerURL: optimizerURL,
-		log:          otelzap.New(log.Named("tits_service")),
+		log:          log.Named("tits_service"),
 	}
 }
 
-func (s *Service) getWebpImage(ctx context.Context, url string) ([]byte, error) {
+func (s *Service) getWebpImage(ctx context.Context, filename, url string) ([]byte, error) {
 	httpClient := http.Client{}
-	requestURL := fmt.Sprintf("%s/optimize?size=350&format=webp&src=%s", s.optimizerURL, url)
+	filenameSplitted := strings.Split(filename, ".")
+	fileUrl := s.storage.GetImageUrl(filenameSplitted[0])
+	requestURL := fmt.Sprintf("%s/optimize?size=350&format=webp&src=http://minio.minio:9000%s.jpg", s.optimizerURL, fileUrl)
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
 		return nil, err
@@ -45,7 +46,20 @@ func (s *Service) getWebpImage(ctx context.Context, url string) ([]byte, error) 
 	req = req.WithContext(ctx)
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		s.log.Error("Get image from minio to optimize")
+		if url == "" {
+			return nil, err
+		}
+		requestURL = fmt.Sprintf("%s/optimize?size=350&format=webp&src=%s", s.optimizerURL, url)
+		req, err = http.NewRequest("GET", requestURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		req = req.WithContext(ctx)
+		resp, err = httpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
 	}
 	defer resp.Body.Close()
 	return ioutil.ReadAll(resp.Body)
@@ -57,20 +71,20 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 
 	err := s.storage.CreateImageFromFile(ctx, filename, filePath)
 	if err != nil {
-		s.log.Ctx(ctx).Error("create tits from file:", zap.Error(err))
+		s.log.Error("create tits from file:", zap.Error(err))
 		return err
 	}
 
-	webpImage, err := s.getWebpImage(ctx, filePath)
+	webpImage, err := s.getWebpImage(ctx, filename, "")
 	if err != nil {
-		s.log.Ctx(ctx).Error("get webp image:", zap.Error(err))
+		s.log.Error("get webp image:", zap.Error(err))
 		return err
 	}
 
 	webpFilename := strings.Replace(filename, ".jpg", ".webp", 1)
 	err = s.storage.CreateImageFromBytes(ctx, webpFilename, webpImage)
 	if err != nil {
-		s.log.Ctx(ctx).Error("create webp image:", zap.Error(err))
+		s.log.Error("create webp image:", zap.Error(err))
 		return err
 	}
 
@@ -80,8 +94,43 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 		Rating:    0,
 	})
 	if err != nil {
-		s.log.Ctx(ctx).Error("create tits in db: ", zap.Error(err))
+		s.log.Error("create tits in db: ", zap.Error(err))
+		//return err
+	}
+	return nil
+}
+
+func (s *Service) CreateTitsFromBytes(ctx context.Context, filename string, file []byte, url string) error {
+	ctx, cancel := context.WithTimeout(ctx, defaultTitsCreateTimeout)
+	defer cancel()
+
+	err := s.storage.CreateImageFromBytes(ctx, filename, file)
+	if err != nil {
+		s.log.Error("create tits from file:", zap.Error(err))
 		return err
+	}
+
+	webpImage, err := s.getWebpImage(ctx, filename, url)
+	if err != nil {
+		s.log.Error("get webp image:", zap.Error(err))
+		return err
+	}
+
+	webpFilename := strings.Replace(filename, ".jpg", ".webp", 1)
+	err = s.storage.CreateImageFromBytes(ctx, webpFilename, webpImage)
+	if err != nil {
+		s.log.Error("create webp image:", zap.Error(err))
+		return err
+	}
+
+	err = s.db.CreateTits(ctx, domain.Tits{
+		ID:        strings.ReplaceAll(filename, ".jpg", ""),
+		CreatedAt: time.Now().UTC(),
+		Rating:    0,
+	})
+	if err != nil {
+		s.log.Error("create tits in db: ", zap.Error(err))
+		//return err
 	}
 	return nil
 }
@@ -89,13 +138,29 @@ func (s *Service) CreateTitsFromFile(ctx context.Context, filename, filePath str
 func (s *Service) GetTits(ctx context.Context) ([]domain.Tits, error) {
 	tits, err := s.db.GetTits(ctx)
 	if err != nil {
-		s.log.Ctx(ctx).Error("get tits from db", zap.Error(err))
+		s.log.Error("get tits from db", zap.Error(err))
 		return nil, err
 	}
 
 	for idx := range tits {
 		imgPrefix := s.storage.GetImageUrl(tits[idx].ID)
-		tits[idx].URL = fmt.Sprintf("%s.wepb", imgPrefix)
+		tits[idx].URL = fmt.Sprintf("%s.webp", imgPrefix)
+		tits[idx].FullURL = fmt.Sprintf("%s.jpg", imgPrefix)
+	}
+
+	return tits, nil
+}
+
+func (s *Service) GetTop(ctx context.Context, limit int, abyss bool) ([]domain.Tits, error) {
+	tits, err := s.db.GetTop(ctx, limit, abyss)
+	if err != nil {
+		s.log.Error("get tits from db", zap.Error(err))
+		return nil, err
+	}
+
+	for idx := range tits {
+		imgPrefix := s.storage.GetImageUrl(tits[idx].ID)
+		tits[idx].URL = fmt.Sprintf("%s.webp", imgPrefix)
 		tits[idx].FullURL = fmt.Sprintf("%s.jpg", imgPrefix)
 	}
 
@@ -105,13 +170,52 @@ func (s *Service) GetTits(ctx context.Context) ([]domain.Tits, error) {
 func (s *Service) IncreaseRating(ctx context.Context, titsID string) error {
 	newRating, err := s.db.IncreaseRating(ctx, titsID)
 	if err != nil {
-		s.log.Ctx(ctx).Error("increase rating in db", zap.Error(err))
+		s.log.Error("increase rating in db", zap.Error(err))
 		return err
 	}
 
 	go s.sendNewRatingMessage(titsID, newRating)
 
 	return nil
+}
+
+func (s *Service) Report(ctx context.Context, titsID string) error {
+	err := s.db.Report(ctx, titsID)
+	if err != nil {
+		s.log.Error("report tits in db", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) GetReports(ctx context.Context, titsID string) (int, error) {
+	reports, err := s.db.GetReportsCount(ctx, titsID)
+	if err != nil {
+		s.log.Error("get reports count from db", zap.Error(err))
+		return 0, err
+	}
+
+	return reports, nil
+}
+
+func (s *Service) MoveToAbyss(ctx context.Context, titsID string) error {
+	err := s.db.MoveToAbyss(ctx, titsID)
+	if err != nil {
+		s.log.Error("move to abyss in db", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func (s *Service) GetTitsWithReportsThreshold(ctx context.Context, reportsThreshold int) ([]domain.Tits, error) {
+	tits, err := s.db.GetTitsWithReportsThreshold(ctx, reportsThreshold)
+	if err != nil {
+		s.log.Error("get tits from db", zap.Error(err))
+		return nil, err
+	}
+
+	return tits, nil
 }
 
 func (s *Service) sendNewRatingMessage(titsID string, newRating int64) {

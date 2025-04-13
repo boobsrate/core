@@ -7,13 +7,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
 )
 
 type GracefulServer struct {
 	server *http.Server
-	log    *otelzap.Logger
+	log    *zap.Logger
 
 	wg   sync.WaitGroup
 	dead chan struct{}
@@ -21,7 +20,7 @@ type GracefulServer struct {
 
 func NewGracefulServer(server *http.Server, log *zap.Logger) *GracefulServer {
 	return &GracefulServer{
-		log:    otelzap.New(log),
+		log:    log,
 		server: server,
 	}
 }

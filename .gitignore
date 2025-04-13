@@ -3,3 +3,4 @@
 /vendor
 /assets/images
 /deps
+/deploy/servicemonitor.yaml

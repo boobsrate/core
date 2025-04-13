@@ -1,0 +1,115 @@
+# Default values for boobsrate-core.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+
+image:
+  name: ghcr.io/boobsrate/core:latest
+  command: /bin/tits
+  migrate_command: /bin/migrator
+  init_command: /bin/parser
+  pullPolicy: Always
+  env:
+    - name: MINIO_BUCKET
+      value: "boobsrate"
+    - name: TRACING_ENDPOINT
+      value: "http://tempo-distributor.mimir.svc.cluster.local:14268/api/traces"
+    - name: CENTRIFUGE_GRPC_ENDPOINT
+      value: "centrifugo.centrifugo:10000"
+  envFromSecret:
+    - name: MINIO_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: boobsrate-s3
+          key: MINIO_ACCESS_KEY
+    - name: MINIO_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: boobsrate-s3
+          key: MINIO_SECRET_KEY
+    - name: CENTRIFUGE_API_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: boobsrate-centrifuge
+          key: CENTRIFUGE_API_TOKEN
+    - name: CENTRIFUGE_SIGNING_KEY
+      valueFrom:
+        secretKeyRef:
+          name: boobsrate-centrifuge
+          key: CENTRIFUGE_SIGNING_KEY
+    - name: DATABASE_DSN
+      valueFrom:
+        secretKeyRef:
+          name: boobsrate-db
+          key: connection_dsn
+
+
+imagePullSecrets: [
+  { name: "dockerconfigjson-github-com" }
+]
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: { }
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: { }
+
+podSecurityContext: { }
+# fsGroup: 2000
+
+securityContext: { }
+  # capabilities:
+#   drop:
+#   - ALL
+# readOnlyRootFilesystem: true
+# runAsNonRoot: true
+# runAsUser: 1000
+
+service:
+  sessionAffinity: None
+  ports:
+    - name: http
+      port: 8088
+      protocol: TCP
+      targetPort: http
+    - name: metrics
+      port: 9090
+      protocol: TCP
+      targetPort: metrics
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+  hosts: {}
+  tls: {}
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 50Mi
+  limits:
+    cpu: 100m
+    memory: 200Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: { }
+
+tolerations: [ ]
+
+affinity: { }

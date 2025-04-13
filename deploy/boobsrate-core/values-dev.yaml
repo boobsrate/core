@@ -1,0 +1,41 @@
+image:
+  env:
+    - name: MINIO_BUCKET
+      value: "boobsrate-dev"
+    - name: TRACER_NAME
+      value: "tits"
+    - name: ENV
+      value: "dev"
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    cert-manager.io/cluster-issuer: "letsencrypt-prod-dns"
+    external-dns.alpha.kubernetes.io/hostname: "dev.boobsrate.com"
+    nginx.ingress.kubernetes.io/server-snippets: |
+      location /api/ws {
+         proxy_set_header Upgrade $http_upgrade;
+         proxy_http_version 1.1;
+         proxy_set_header X-Forwarded-Host $http_host;
+         proxy_set_header X-Forwarded-Proto $scheme;
+         proxy_set_header X-Forwarded-For $remote_addr;
+         proxy_set_header Host $host;
+         proxy_set_header Connection "upgrade";
+         proxy_cache_bypass $http_upgrade;
+       }
+  hosts:
+    - host: dev.boobsrate.com
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              port:
+                number: 8088
+
+  tls:
+    - secretName: tls-titsfrontend-dev
+      hosts:
+        - dev.boobsrate.com
