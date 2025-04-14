@@ -2,6 +2,7 @@ package chat
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -48,11 +49,13 @@ func (h *Handler) postMessage(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	jsonBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		fmt.Println(err)
 		h.ErrorJSON(w, err.Error(), 500)
 	}
 	var payload chatPayload
 	err = json.Unmarshal(jsonBody, &payload)
 	if err != nil {
+		fmt.Println(err)
 		h.ErrorJSON(w, err.Error(), 500)
 	}
 
@@ -63,6 +66,7 @@ func (h *Handler) postMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
+		fmt.Println(err)
 		h.ErrorJSON(w, err.Error(), 500)
 	}
 
@@ -71,6 +75,7 @@ func (h *Handler) postMessage(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := jws.Decode(tokenStrJWT)
 	if err != nil {
+		fmt.Println(err)
 		h.ErrorJSON(w, err.Error(), 500)
 	}
 
@@ -78,6 +83,7 @@ func (h *Handler) postMessage(w http.ResponseWriter, r *http.Request) {
 	var ustgPl tgPayload
 	err = json.Unmarshal([]byte(claims.Sub), &ustgPl)
 	if err != nil {
+		fmt.Println(err)
 		h.ErrorJSON(w, err.Error(), 500)
 	}
 

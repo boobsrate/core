@@ -63,12 +63,12 @@ func Run() error {
 	httpMetricsServer := server.NewGracefulServer(metricsServer, logger.Named("metrics_server"))
 
 	rootRouter := mux.NewRouter()
-
-	tp, err := tracing.NewTracingProvider(cfg.Tracing.ProviderEndpoint, cfg.Tracing.TracerName)
-	if err != nil {
-		logger.Error("create tracing provider", zap.Error(err))
-		return fmt.Errorf("creating tracing provider: %v", err)
-	}
+	//
+	//tp, err := tracing.NewTracingProvider(cfg.Tracing.ProviderEndpoint, cfg.Tracing.TracerName)
+	//if err != nil {
+	//	logger.Error("create tracing provider", zap.Error(err))
+	//	return fmt.Errorf("creating tracing provider: %v", err)
+	//}
 
 	rootRouter.Use(otelmiddleware.Middleware("tits"))
 
@@ -92,7 +92,12 @@ func Run() error {
 		channel = "boobs_prod"
 	}
 
-	openaiClient := openai.NewClient(cfg.OpenAI.ApiKey)
+	deepSeekBaseUri := "https://api.deepseek.com"
+
+	cfgDs := openai.DefaultConfig(cfg.OpenAI.ApiKey)
+	cfgDs.BaseURL = deepSeekBaseUri
+	openaiClient := openai.NewClientWithConfig(cfgDs)
+
 	buryatSvc := buryat.NewService(openaiClient)
 
 	msgChan := make(chan domain.WSMessage)
@@ -131,9 +136,9 @@ func Run() error {
 		return httpRootServer.Serve()
 	}))
 
-	obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
-		return tp.Shutdown(ctx)
-	}))
+	//obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
+	//	return tp.Shutdown(ctx)
+	//}))
 
 	obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
 		return httpRootServer.Shutdown(ctx)
