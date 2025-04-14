@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/boobsrate/core/internal/domain"
@@ -15,12 +14,14 @@ import (
 type Handler struct {
 	baseHandler
 
-	cfKey string
+	cfKey  string
+	isProd bool
 }
 
-func NewAuthHandler(centrifugeSignKey string) *Handler {
+func NewAuthHandler(centrifugeSignKey, env string) *Handler {
 	return &Handler{
-		cfKey: centrifugeSignKey,
+		isProd: env == "prod",
+		cfKey:  centrifugeSignKey,
 	}
 }
 
@@ -51,12 +52,37 @@ func (h *Handler) tgLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.ErrorJSON(w, err.Error(), 500)
 	}
+
+	jwtData := map[string]interface{}{
+		"id":         payload.ID,
+		"first_name": payload.FirstName,
+		"last_name":  payload.LastName,
+		"username":   payload.Username,
+		"photo_url":  payload.PhotoUrl,
+		"auth_date":  payload.AuthDate,
+		"hash":       payload.Hash,
+	}
+
+	claims := jwt.MapClaims{
+		"exp": jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		"iat": jwt.NewNumericDate(time.Now()),
+		"sub": jwtData,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenStr, _ := token.SignedString([]byte(h.cfKey))
+
+	cookieDomain := "dev.boobsrate.com"
+
+	if h.isProd {
+		cookieDomain = "boobsrate.com"
+	}
 	expiration := time.Now().Add(14 * 24 * time.Hour)
 	cookie := http.Cookie{
 		Name:    "boobs_session",
-		Value:   strconv.Itoa(payload.ID),
+		Value:   tokenStr,
 		Expires: expiration,
-		Domain:  "dev.boobsrate.com",
+		Domain:  cookieDomain,
 		Path:    "/",
 	}
 	http.SetCookie(w, &cookie)
@@ -80,9 +106,15 @@ func (h *Handler) handleGetToken(w http.ResponseWriter, r *http.Request) {
 	secret := []byte(h.cfKey)
 	tokenStr, _ := token.SignedString(secret)
 
+	channel := "boobs_dev"
+
+	if h.isProd {
+		channel = "boobs_prod"
+	}
+
 	customClaimsChan := jwt.MapClaims{
 		"sub":     id,
-		"channel": "boobs_dev",
+		"channel": channel,
 		"exp":     jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		"iat":     jwt.NewNumericDate(time.Now()),
 	}
@@ -91,5 +123,18 @@ func (h *Handler) handleGetToken(w http.ResponseWriter, r *http.Request) {
 
 	chanTokenStr, _ := chanToken.SignedString(secret)
 
-	json.NewEncoder(w).Encode(map[string]string{"token": tokenStr, "chan_token": chanTokenStr})
+	chatChannel := "chat_global"
+
+	customClaimsChatChan := jwt.MapClaims{
+		"sub":     id,
+		"channel": chatChannel,
+		"exp":     jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		"iat":     jwt.NewNumericDate(time.Now()),
+	}
+
+	chatChanToken := jwt.NewWithClaims(jwt.SigningMethodHS256, customClaimsChatChan)
+
+	chatChanTokenStr, _ := chatChanToken.SignedString(secret)
+
+	json.NewEncoder(w).Encode(map[string]string{"token": tokenStr, "chan_token": chanTokenStr, "chat_token": chatChanTokenStr})
 }

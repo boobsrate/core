@@ -10,6 +10,7 @@ import (
 	"github.com/boobsrate/core/internal/config"
 	"github.com/boobsrate/core/internal/domain"
 	authhandlers "github.com/boobsrate/core/internal/handlers/auth"
+	"github.com/boobsrate/core/internal/handlers/chat"
 	titshandlers "github.com/boobsrate/core/internal/handlers/tits"
 	"github.com/boobsrate/core/internal/repository/postgres"
 	"github.com/boobsrate/core/internal/services/centrifuge"
@@ -83,8 +84,14 @@ func Run() error {
 	database := postgres.NewPostgresDatabase(cfg.Database.DatabaseDSN)
 	titsRepo := postgres.NewTitsRepository(database)
 
+	channel := "boobs_dev"
+
+	if cfg.Base.Env == "prod" {
+		channel = "boobs_prod"
+	}
+
 	msgChan := make(chan domain.WSMessage)
-	centrifugeRunner, err := centrifuge.NewService(msgChan, cfg.Centrifuge, "boobs_dev", logger)
+	centrifugeRunner, err := centrifuge.NewService(msgChan, cfg.Centrifuge, channel, logger)
 	if err != nil {
 		return err
 	}
@@ -94,8 +101,11 @@ func Run() error {
 	titsHttpService := titshandlers.NewTitsHandler(titsService)
 	titsHttpService.Register(rootRouter)
 
-	authhandler := authhandlers.NewAuthHandler(cfg.Centrifuge.SigningKey)
+	authhandler := authhandlers.NewAuthHandler(cfg.Centrifuge.SigningKey, cfg.Base.Env)
 	authhandler.Register(rootRouter)
+
+	chatHandler := chat.NewChatHandler(cfg.Centrifuge.SigningKey, cfg.Base.Env, msgChan)
+	chatHandler.Register(rootRouter)
 
 	rootServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.HTTPPort),

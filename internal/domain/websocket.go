@@ -16,6 +16,7 @@ func (w WSMessageType) String() string {
 const (
 	WSMessageTypeNewRating   = "new_rating"
 	WSMessageTypeOnlineUsers = "online_users"
+	WSMessageTypeChat        = "chat"
 )
 
 type WSMessage struct {
@@ -39,6 +40,11 @@ type WSNewRatingMessage struct {
 
 type WSOnlineUsersMessage struct {
 	Online int `json:"online"`
+}
+
+type WSChatMessage struct {
+	Text   string `json:"text"`
+	Sender string `json:"sender"`
 }
 
 type WSClient struct {
