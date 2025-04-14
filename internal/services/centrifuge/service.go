@@ -146,8 +146,13 @@ func (s *Service) Run(ctx context.Context) {
 				continue
 			}
 
+			channel := s.chanName
+			if msg.Type == domain.WSMessageTypeChat {
+				channel = "chat_global"
+			}
+
 			resp, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
-				Channels: []string{s.chanName},
+				Channels: []string{channel},
 				Data:     b,
 			})
 			if err != nil {
