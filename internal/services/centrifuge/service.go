@@ -2,7 +2,9 @@ package centrifuge
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/boobsrate/core/internal/config"
 	"github.com/boobsrate/core/internal/domain"
@@ -49,6 +51,36 @@ func (s *Service) Run(ctx context.Context) {
 		s.log.Error("error getting info", zap.Error(err))
 	}
 	s.log.Info("centrifuge info", zap.Any("resp", resp))
+
+	go func() {
+		ticker := time.NewTicker(120 * time.Second)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				s.log.Info("tick")
+				if rand.Intn(100) > 20 {
+					continue
+				}
+				resp, err := s.buryat.GetResponse([]openai.ChatCompletionMessage{{
+					Role:    openai.ChatMessageRoleUser,
+					Content: fmt.Sprintf("Current date[%d]. Здарова. Расскажи о чем-нибудь интересном, историю с работы, как твои дела?", time.Now().Unix()),
+				}})
+				if err != nil {
+					s.log.Error("failed to get response from buryat", zap.Error(err))
+					return
+				}
+				var bMsg domain.WSMessage
+				bMsg.Message = domain.WSChatMessage{
+					Text:   resp,
+					Sender: "Ебанько Бурят",
+				}
+				bMsg.Type = domain.WSMessageTypeChat
+				s.wsChannel <- bMsg
+			}
+		}
+	}()
 
 	for {
 		select {
