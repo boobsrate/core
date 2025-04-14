@@ -13,6 +13,7 @@ import (
 	"github.com/boobsrate/core/internal/handlers/chat"
 	titshandlers "github.com/boobsrate/core/internal/handlers/tits"
 	"github.com/boobsrate/core/internal/repository/postgres"
+	"github.com/boobsrate/core/internal/services/buryat"
 	"github.com/boobsrate/core/internal/services/centrifuge"
 	titssvc "github.com/boobsrate/core/internal/services/tits"
 	minio2 "github.com/boobsrate/core/internal/storage/minio"
@@ -23,6 +24,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/sashabaranov/go-openai"
 	otelmiddleware "go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
 )
@@ -90,8 +92,11 @@ func Run() error {
 		channel = "boobs_prod"
 	}
 
+	openaiClient := openai.NewClient(cfg.OpenAI.ApiKey)
+	buryatSvc := buryat.NewService(openaiClient)
+
 	msgChan := make(chan domain.WSMessage)
-	centrifugeRunner, err := centrifuge.NewService(msgChan, cfg.Centrifuge, channel, logger)
+	centrifugeRunner, err := centrifuge.NewService(msgChan, buryatSvc, cfg.Centrifuge, channel, logger)
 	if err != nil {
 		return err
 	}

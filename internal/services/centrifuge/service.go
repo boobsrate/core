@@ -2,11 +2,14 @@ package centrifuge
 
 import (
 	"context"
+	"math/rand"
 
 	"github.com/boobsrate/core/internal/config"
 	"github.com/boobsrate/core/internal/domain"
+	"github.com/boobsrate/core/internal/services/buryat"
 	centrifugeApi "github.com/boobsrate/core/pkg/centrifugal"
 	grpc2 "github.com/boobsrate/core/pkg/grpc"
+	"github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -15,11 +18,12 @@ type Service struct {
 	wsChannel chan domain.WSMessage
 	cli       centrifugeApi.CentrifugoApiClient
 	chanName  string
+	buryat    *buryat.Service
 
 	log *zap.Logger
 }
 
-func NewService(wsChannel chan domain.WSMessage, cfg config.CentrifugeConfiguration, chanName string, log *zap.Logger) (*Service, error) {
+func NewService(wsChannel chan domain.WSMessage, buryat *buryat.Service, cfg config.CentrifugeConfiguration, chanName string, log *zap.Logger) (*Service, error) {
 
 	cc, err := grpc2.NewGrpcClient(cfg.GRPCAddress, grpc.WithPerRPCCredentials(keyAuth{cfg.ApiToken}))
 
@@ -34,6 +38,7 @@ func NewService(wsChannel chan domain.WSMessage, cfg config.CentrifugeConfigurat
 		log:       log.Named("centrifuge_service"),
 		chanName:  chanName,
 		wsChannel: wsChannel,
+		buryat:    buryat,
 	}, nil
 }
 
@@ -62,6 +67,31 @@ func (s *Service) Run(ctx context.Context) {
 			})
 			if err != nil {
 				s.log.Error("error while publishing message to centrifuge", zap.Error(err))
+			}
+
+			if msg.Type == domain.WSMessageTypeChat {
+				// resp only in 20% cases
+				if rand.Intn(100) > 20 {
+					continue
+				}
+
+				go func() {
+					resp, err := s.buryat.GetResponse([]openai.ChatCompletionMessage{{
+						Role:    openai.ChatMessageRoleUser,
+						Content: msg.Message.(domain.WSChatMessage).Text,
+					}})
+					if err != nil {
+						s.log.Error("failed to get response from buryat", zap.Error(err))
+						return
+					}
+					var bMsg domain.WSMessage
+					bMsg.Message = domain.WSChatMessage{
+						Text:   resp,
+						Sender: "Ебанько Бурят",
+					}
+					bMsg.Type = domain.WSMessageTypeChat
+					s.wsChannel <- bMsg
+				}()
 			}
 
 			s.log.Info("published message to centrifuge", zap.Any("resp", resp))
