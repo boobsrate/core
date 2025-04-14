@@ -1,5 +1,7 @@
 image:
   env:
+    - name: MINIO_BUCKET
+      value: "boobsrate"
     - name: ENV
       value: "prod"
 
