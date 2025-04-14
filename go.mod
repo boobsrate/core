@@ -2,8 +2,6 @@ module github.com/boobsrate/core
 
 go 1.21
 
-toolchain go1.24.2
-
 require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/gojuno/minimock/v3 v3.1.3
