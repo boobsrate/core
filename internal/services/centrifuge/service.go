@@ -161,6 +161,9 @@ func (s *Service) Run(ctx context.Context) {
 			}
 
 			if msg.Type == domain.WSMessageTypeChat {
+				mess := msg.Message.(domain.WSChatMessage)
+				mess.Text = msg.Message.(domain.WSChatMessage).Sender + ": " + msg.Message.(domain.WSChatMessage).Text
+				msg.Message = mess
 				s.ctxHistory = append(s.ctxHistory, msg)
 				go func() {
 					if rand.Intn(100) > 20 {
