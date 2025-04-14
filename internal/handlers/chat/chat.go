@@ -27,7 +27,7 @@ func NewChatHandler(centrifugeSignKey, env string, wsChannel chan domain.WSMessa
 }
 
 func (h *Handler) Register(router *mux.Router) {
-	router.HandleFunc("/chat/messages'", h.postMessage).Methods("POST")
+	router.HandleFunc("/chat/messages", h.postMessage).Methods("POST")
 }
 
 type chatPayload struct {
