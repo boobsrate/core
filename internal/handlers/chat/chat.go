@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/boobsrate/core/internal/domain"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
-	"golang.org/x/oauth2/jws"
 )
 
 type Handler struct {
@@ -73,7 +73,9 @@ func (h *Handler) postMessage(w http.ResponseWriter, r *http.Request) {
 	// extract value form cookie
 	tokenStrJWT := cookie.Value
 
-	claims, err := jws.Decode(tokenStrJWT)
+	tkn, err := jwt.ParseWithClaims(tokenStrJWT, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(h.cfKey), nil
+	})
 	if err != nil {
 		fmt.Println(err)
 		h.ErrorJSON(w, err.Error(), 500)
@@ -81,7 +83,33 @@ func (h *Handler) postMessage(w http.ResponseWriter, r *http.Request) {
 
 	// unmarshal claims.Sub to ustgPl
 	var ustgPl tgPayload
-	err = json.Unmarshal([]byte(claims.Sub), &ustgPl)
+
+	// Extract the sub claim from the token
+	claims, ok := tkn.Claims.(*jwt.MapClaims)
+	if !ok {
+		fmt.Println("couldn't parse claims")
+		h.ErrorJSON(w, "couldn't parse claims", 500)
+		return
+	}
+
+	// Get the sub field which contains our user data
+	sub, ok := (*claims)["sub"]
+	if !ok {
+		fmt.Println("no sub claim found")
+		h.ErrorJSON(w, "no sub claim found", 500)
+		return
+	}
+
+	// Convert the sub claim to JSON
+	subJSON, err := json.Marshal(sub)
+	if err != nil {
+		fmt.Println(err)
+		h.ErrorJSON(w, err.Error(), 500)
+		return
+	}
+
+	// Unmarshal the JSON into our tgPayload struct
+	err = json.Unmarshal(subJSON, &ustgPl)
 	if err != nil {
 		fmt.Println(err)
 		h.ErrorJSON(w, err.Error(), 500)
