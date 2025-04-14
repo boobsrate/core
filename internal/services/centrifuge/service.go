@@ -122,7 +122,15 @@ func (s *Service) Run(ctx context.Context) {
 					Sender: "Ебанько Бурят",
 				}
 				bMsg.Type = domain.WSMessageTypeChat
-				s.wsChannel <- bMsg
+				bb, err := bMsg.MarshalJSON()
+				bres, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
+					Channels: []string{"chat_global"},
+					Data:     bb,
+				})
+				if err != nil {
+					s.log.Error("error while publishing message to centrifuge", zap.Error(err))
+				}
+				s.log.Info("published message to centrifuge", zap.Any("resp", bres))
 			}
 		}
 	}()
@@ -168,7 +176,7 @@ func (s *Service) Run(ctx context.Context) {
 					bMsg.Type = domain.WSMessageTypeChat
 					bb, err := bMsg.MarshalJSON()
 					bres, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
-						Channels: []string{s.chanName},
+						Channels: []string{"chat_global"},
 						Data:     bb,
 					})
 					if err != nil {
