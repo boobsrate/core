@@ -7,6 +7,7 @@ ingress:
   enabled: true
   className: "nginx"
   annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
     cert-manager.io/cluster-issuer: "letsencrypt-prod-dns"
     external-dns.alpha.kubernetes.io/hostname: "boobsrate.com"
     nginx.ingress.kubernetes.io/server-snippets: |
@@ -23,7 +24,7 @@ ingress:
   hosts:
     - host: boobsrate.com
       paths:
-        - path: /api/(.*)
+        - path: /api(/|$)(.*)
           pathType: Prefix
           backend:
             service:

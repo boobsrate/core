@@ -13,6 +13,11 @@ type Configuration struct {
 	Metrics    MetricsConfig
 	Minio      MinioConfig
 	Images     ImagesConfig
+	OpenAI     OpenAIConfig
+}
+
+type OpenAIConfig struct {
+	ApiKey string `env:"OPENAI_API_KEY" required:"true"`
 }
 
 type BaseConfig struct {

@@ -10,8 +10,10 @@ import (
 	"github.com/boobsrate/core/internal/config"
 	"github.com/boobsrate/core/internal/domain"
 	authhandlers "github.com/boobsrate/core/internal/handlers/auth"
+	"github.com/boobsrate/core/internal/handlers/chat"
 	titshandlers "github.com/boobsrate/core/internal/handlers/tits"
 	"github.com/boobsrate/core/internal/repository/postgres"
+	"github.com/boobsrate/core/internal/services/buryat"
 	"github.com/boobsrate/core/internal/services/centrifuge"
 	titssvc "github.com/boobsrate/core/internal/services/tits"
 	minio2 "github.com/boobsrate/core/internal/storage/minio"
@@ -22,6 +24,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/sashabaranov/go-openai"
 	otelmiddleware "go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
 )
@@ -60,12 +63,12 @@ func Run() error {
 	httpMetricsServer := server.NewGracefulServer(metricsServer, logger.Named("metrics_server"))
 
 	rootRouter := mux.NewRouter()
-
-	tp, err := tracing.NewTracingProvider(cfg.Tracing.ProviderEndpoint, cfg.Tracing.TracerName)
-	if err != nil {
-		logger.Error("create tracing provider", zap.Error(err))
-		return fmt.Errorf("creating tracing provider: %v", err)
-	}
+	//
+	//tp, err := tracing.NewTracingProvider(cfg.Tracing.ProviderEndpoint, cfg.Tracing.TracerName)
+	//if err != nil {
+	//	logger.Error("create tracing provider", zap.Error(err))
+	//	return fmt.Errorf("creating tracing provider: %v", err)
+	//}
 
 	rootRouter.Use(otelmiddleware.Middleware("tits"))
 
@@ -83,8 +86,22 @@ func Run() error {
 	database := postgres.NewPostgresDatabase(cfg.Database.DatabaseDSN)
 	titsRepo := postgres.NewTitsRepository(database)
 
+	channel := "boobs_dev"
+
+	if cfg.Base.Env == "prod" {
+		channel = "boobs_prod"
+	}
+
+	deepSeekBaseUri := "https://api.deepseek.com"
+
+	cfgDs := openai.DefaultConfig(cfg.OpenAI.ApiKey)
+	cfgDs.BaseURL = deepSeekBaseUri
+	openaiClient := openai.NewClientWithConfig(cfgDs)
+
+	buryatSvc := buryat.NewService(openaiClient)
+
 	msgChan := make(chan domain.WSMessage)
-	centrifugeRunner, err := centrifuge.NewService(msgChan, cfg.Centrifuge, "boobs_dev", logger)
+	centrifugeRunner, err := centrifuge.NewService(msgChan, buryatSvc, cfg.Centrifuge, channel, logger)
 	if err != nil {
 		return err
 	}
@@ -94,8 +111,11 @@ func Run() error {
 	titsHttpService := titshandlers.NewTitsHandler(titsService)
 	titsHttpService.Register(rootRouter)
 
-	authhandler := authhandlers.NewAuthHandler(cfg.Centrifuge.SigningKey)
+	authhandler := authhandlers.NewAuthHandler(cfg.Centrifuge.SigningKey, cfg.Base.Env)
 	authhandler.Register(rootRouter)
+
+	chatHandler := chat.NewChatHandler(cfg.Centrifuge.SigningKey, cfg.Base.Env, msgChan)
+	chatHandler.Register(rootRouter)
 
 	rootServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.HTTPPort),
@@ -116,9 +136,9 @@ func Run() error {
 		return httpRootServer.Serve()
 	}))
 
-	obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
-		return tp.Shutdown(ctx)
-	}))
+	//obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
+	//	return tp.Shutdown(ctx)
+	//}))
 
 	obs.AddContextCloser(observer.ContextCloserFunc(func(ctx context.Context) error {
 		return httpRootServer.Shutdown(ctx)

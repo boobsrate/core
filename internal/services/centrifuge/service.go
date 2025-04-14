@@ -2,24 +2,31 @@ package centrifuge
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/boobsrate/core/internal/config"
 	"github.com/boobsrate/core/internal/domain"
+	"github.com/boobsrate/core/internal/services/buryat"
 	centrifugeApi "github.com/boobsrate/core/pkg/centrifugal"
 	grpc2 "github.com/boobsrate/core/pkg/grpc"
+	"github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 type Service struct {
-	wsChannel chan domain.WSMessage
-	cli       centrifugeApi.CentrifugoApiClient
-	chanName  string
+	wsChannel  chan domain.WSMessage
+	cli        centrifugeApi.CentrifugoApiClient
+	chanName   string
+	buryat     *buryat.Service
+	ctxHistory []domain.WSMessage
 
 	log *zap.Logger
 }
 
-func NewService(wsChannel chan domain.WSMessage, cfg config.CentrifugeConfiguration, chanName string, log *zap.Logger) (*Service, error) {
+func NewService(wsChannel chan domain.WSMessage, buryat *buryat.Service, cfg config.CentrifugeConfiguration, chanName string, log *zap.Logger) (*Service, error) {
 
 	cc, err := grpc2.NewGrpcClient(cfg.GRPCAddress, grpc.WithPerRPCCredentials(keyAuth{cfg.ApiToken}))
 
@@ -34,6 +41,7 @@ func NewService(wsChannel chan domain.WSMessage, cfg config.CentrifugeConfigurat
 		log:       log.Named("centrifuge_service"),
 		chanName:  chanName,
 		wsChannel: wsChannel,
+		buryat:    buryat,
 	}, nil
 }
 
@@ -44,6 +52,89 @@ func (s *Service) Run(ctx context.Context) {
 		s.log.Error("error getting info", zap.Error(err))
 	}
 	s.log.Info("centrifuge info", zap.Any("resp", resp))
+
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				s.log.Info("tick online")
+				resp, err := s.cli.Info(context.Background(), &centrifugeApi.InfoRequest{})
+				clientCount := 0
+				for _, node := range resp.GetResult().GetNodes() {
+					clientCount += int(node.GetNumClients())
+				}
+				s.log.Info("centrifuge info", zap.Any("resp", resp), zap.Int("client_count", clientCount))
+
+				if err != nil {
+					s.log.Error("error getting info", zap.Error(err))
+				}
+				s.log.Info("centrifuge info", zap.Any("resp", resp))
+				msg := domain.WSMessage{
+					Type: domain.WSMessageTypeOnlineUsers,
+					Message: domain.WSOnlineUsersMessage{
+						Online: clientCount,
+					},
+				}
+
+				// send to centrifuge
+				b, err := msg.MarshalJSON()
+				if err != nil {
+					s.log.Error("failed to marshal message", zap.Error(err))
+					return
+				}
+				respB, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
+					Channels: []string{s.chanName},
+					Data:     b,
+				})
+				if err != nil {
+					s.log.Error("error while publishing message to centrifuge", zap.Error(err))
+				}
+
+				s.log.Info("published message to centrifuge", zap.Any("resp", respB))
+			}
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(300 * time.Second)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				s.log.Info("tick")
+				if rand.Intn(100) > 20 {
+					continue
+				}
+				resp, err := s.buryat.GetResponse([]openai.ChatCompletionMessage{{
+					Role:    openai.ChatMessageRoleUser,
+					Content: fmt.Sprintf("Current date[%d]. Здарова. Расскажи о чем-нибудь интересном, историю с работы, как твои дела? Расскажи длинную историю про твой день.", time.Now().Unix()),
+				}})
+				if err != nil {
+					s.log.Error("failed to get response from buryat", zap.Error(err))
+					return
+				}
+				var bMsg domain.WSMessage
+				bMsg.Message = domain.WSChatMessage{
+					Text:   resp,
+					Sender: "Ебанько Бурят",
+				}
+				bMsg.Type = domain.WSMessageTypeChat
+				bb, err := bMsg.MarshalJSON()
+				bres, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
+					Channels: []string{"chat_global"},
+					Data:     bb,
+				})
+				if err != nil {
+					s.log.Error("error while publishing message to centrifuge", zap.Error(err))
+				}
+				s.log.Info("published message to centrifuge", zap.Any("resp", bres))
+			}
+		}
+	}()
 
 	for {
 		select {
@@ -56,12 +147,65 @@ func (s *Service) Run(ctx context.Context) {
 				continue
 			}
 
+			channel := s.chanName
+			if msg.Type == domain.WSMessageTypeChat {
+				channel = "chat_global"
+			}
+
 			resp, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
-				Channels: []string{s.chanName},
+				Channels: []string{channel},
 				Data:     b,
 			})
 			if err != nil {
 				s.log.Error("error while publishing message to centrifuge", zap.Error(err))
+			}
+
+			if msg.Type == domain.WSMessageTypeChat {
+				mess := msg.Message.(domain.WSChatMessage)
+				mess.Text = msg.Message.(domain.WSChatMessage).Sender + ": " + msg.Message.(domain.WSChatMessage).Text
+				msg.Message = mess
+				s.ctxHistory = append(s.ctxHistory, msg)
+				go func() {
+					if rand.Intn(100) > 20 {
+						return
+					}
+
+					if len(s.ctxHistory) > 10 {
+						s.ctxHistory = s.ctxHistory[1:]
+					}
+
+					s.log.Info("ctx history", zap.Any("ctx", s.ctxHistory))
+
+					openaiMsgs := make([]openai.ChatCompletionMessage, 0, len(s.ctxHistory))
+					for _, m := range s.ctxHistory {
+						openaiMsgs = append(openaiMsgs, openai.ChatCompletionMessage{
+							Role:    openai.ChatMessageRoleUser,
+							Content: m.Message.(domain.WSChatMessage).Text,
+						})
+					}
+
+					resp, err := s.buryat.GetResponse(openaiMsgs)
+					if err != nil {
+						s.log.Error("failed to get response from buryat", zap.Error(err))
+						return
+					}
+					var bMsg domain.WSMessage
+					bMsg.Message = domain.WSChatMessage{
+						Text:   resp,
+						Sender: "Ебанько Бурят",
+					}
+					bMsg.Type = domain.WSMessageTypeChat
+					s.ctxHistory = append(s.ctxHistory, bMsg)
+					bb, err := bMsg.MarshalJSON()
+					bres, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
+						Channels: []string{"chat_global"},
+						Data:     bb,
+					})
+					if err != nil {
+						s.log.Error("error while publishing message to centrifuge", zap.Error(err))
+					}
+					s.log.Info("published message to centrifuge", zap.Any("resp", bres))
+				}()
 			}
 
 			s.log.Info("published message to centrifuge", zap.Any("resp", resp))
