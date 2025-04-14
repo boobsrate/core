@@ -17,10 +17,11 @@ import (
 )
 
 type Service struct {
-	wsChannel chan domain.WSMessage
-	cli       centrifugeApi.CentrifugoApiClient
-	chanName  string
-	buryat    *buryat.Service
+	wsChannel  chan domain.WSMessage
+	cli        centrifugeApi.CentrifugoApiClient
+	chanName   string
+	buryat     *buryat.Service
+	ctxHistory []domain.WSMessage
 
 	log *zap.Logger
 }
@@ -160,15 +161,27 @@ func (s *Service) Run(ctx context.Context) {
 			}
 
 			if msg.Type == domain.WSMessageTypeChat {
+				s.ctxHistory = append(s.ctxHistory, msg)
 				go func() {
 					if rand.Intn(100) > 20 {
 						return
 					}
 
-					resp, err := s.buryat.GetResponse([]openai.ChatCompletionMessage{{
-						Role:    openai.ChatMessageRoleUser,
-						Content: msg.Message.(domain.WSChatMessage).Text,
-					}})
+					if len(s.ctxHistory) > 10 {
+						s.ctxHistory = s.ctxHistory[1:]
+					}
+
+					s.log.Info("ctx history", zap.Any("ctx", s.ctxHistory))
+
+					openaiMsgs := make([]openai.ChatCompletionMessage, 0, len(s.ctxHistory))
+					for _, m := range s.ctxHistory {
+						openaiMsgs = append(openaiMsgs, openai.ChatCompletionMessage{
+							Role:    openai.ChatMessageRoleUser,
+							Content: m.Message.(domain.WSChatMessage).Text,
+						})
+					}
+
+					resp, err := s.buryat.GetResponse(openaiMsgs)
 					if err != nil {
 						s.log.Error("failed to get response from buryat", zap.Error(err))
 						return
@@ -179,6 +192,7 @@ func (s *Service) Run(ctx context.Context) {
 						Sender: "Ебанько Бурят",
 					}
 					bMsg.Type = domain.WSMessageTypeChat
+					s.ctxHistory = append(s.ctxHistory, bMsg)
 					bb, err := bMsg.MarshalJSON()
 					bres, err := s.cli.Broadcast(context.Background(), &centrifugeApi.BroadcastRequest{
 						Channels: []string{"chat_global"},
