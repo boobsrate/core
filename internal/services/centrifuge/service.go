@@ -98,7 +98,7 @@ func (s *Service) Run(ctx context.Context) {
 	}()
 
 	go func() {
-		ticker := time.NewTicker(120 * time.Second)
+		ticker := time.NewTicker(300 * time.Second)
 		for {
 			select {
 			case <-ctx.Done():
@@ -110,7 +110,7 @@ func (s *Service) Run(ctx context.Context) {
 				}
 				resp, err := s.buryat.GetResponse([]openai.ChatCompletionMessage{{
 					Role:    openai.ChatMessageRoleUser,
-					Content: fmt.Sprintf("Current date[%d]. Здарова. Расскажи о чем-нибудь интересном, историю с работы, как твои дела?", time.Now().Unix()),
+					Content: fmt.Sprintf("Current date[%d]. Здарова. Расскажи о чем-нибудь интересном, историю с работы, как твои дела? Расскажи длинную историю про твой день.", time.Now().Unix()),
 				}})
 				if err != nil {
 					s.log.Error("failed to get response from buryat", zap.Error(err))
